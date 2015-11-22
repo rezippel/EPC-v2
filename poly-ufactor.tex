@@ -1,0 +1,189 @@
+%$Id: poly-factor.tex,v 1.1 1992/05/10 19:41:26 rz Exp rz $
+\chapter{Univariate Factorization}
+\label{UFactoring:Chap}
+
+This chapter discusses the factorization of univariate polynomials
+over the rational integers.  For many years this problem has been
+attacked by a combination of the Hensel lifting techniques and one of
+the algorithms for factorization over finite fields.  For many
+problems this has been quite effective, but in the worst case this
+approach can take exponential time.  In 1982, A.~K.~{\LenstraA},
+H.~W.~{\LenstraH} and {\Lovasz} \cite{LenstraAK82} developed an
+algorithm for factoring univariate polynomials over $\Z$ in polynomial
+time by using lattice basis reduction.  Suddenly, the complexity of a
+number of other problems was reduced to polynomial time, \eg,
+\cite{Landau85a}.  However, experience with actual implementations has
+shown\Marginpar{Need than references} that the lattice reduction
+techniques are not faster than the older exponential time techniques
+for any factorization problem that can be completed in reasonable time
+today.
+
+\sectref{UF:Reductions:Sec} discusses some simple reductions of the
+factorization problem, make the polynomial square free, etc., that can
+be used independent of the algorithm used for the core of the
+factorization problem.  In \sectref{UF:Simple:Sec} we discuss the
+classical, exponential time factorization algorithm, which is probably
+still the optimal approach.  Finally, in \sectref{UF:LLL:Sec} we
+discuss the asymptotically good algorithms that make use of lattice
+reduction techniques. 
+
+\section{Reductions}
+\label{UF:Reductions:Sec}
+
+When factoring a univariate polynomial, 
+\[
+F(Z) = f_0 Z^d _+ f_1 Z^{d-1} + \cdots + f_d,
+\]
+over $\Z$, two simplifications are effective.  First, removing the
+integer content of $F(Z)$ decreases the size of the coefficients of
+$F(Z)$, and doesn't change the number of non-zero terms.  For all
+univariate factorization algorithm known to this point, it is
+worthwhile.
+
+As with all univariate problems we define the size of a univariate
+polynomial, $F(Z)$, to be $(\deg F)\cdot \|F\|_{\infty} = d
+|F|$.\index{size, of univariate polynomial} Since the sum of the
+degrees of the factors of $F$ is equal to the degree of $F$, the size
+of the factorization of $F$ can only be larger than that of $F$
+because of growth in the size of the coefficients.  Thus, by
+\longpropref{Factor:CBound:Prop} the size of the factorization can
+only increase by about a factor of $d$.  Furthermore, no factorization
+of $F$, into irreducible components or not, is more than a factor of
+$d$ larger than the size of $F$.  Thus it is worthwhile to compute a
+\key{square free decomposition} of $F(Z)$.
+
+Notice that one could also try to monicize the $F(Z)$:
+\[
+f_0^{d-1}F(Z) = (f_0 Z)^d + f_1 f_0 (f_0 Z)^{d-1} + \cdots + f_d
+f_0^{d-1},
+\]
+but this could increase the size of the coefficients of $F$ by as much
+as $f_0^{d-1}$.  Furthermore, neither of the two factoring algorithms
+discussed benefit significantly from being restricted to monic
+polynomials.
+
+\section{Simple Algorithm}
+\label{UF:Simple:Sec}
+
+We assume that $F(Z)$ is a univariate polynomial over $\Z$ of degree
+$d$, square free and primitive.  The classical univariate
+factorization algorithm consists of three steps:
+\begin{enumerate}
+\item Choose a ``good'' random rational prime $p$ and factor $F(Z)$
+into irreducible factors modulo $p$ 
+\[
+F(Z) = F_1(Z) F_2(Z) \cdots F_k(Z) \pmod{p}
+\]
+
+\item Use Newton's iteration to lift the $F_i$ to factors modulo
+$p^{\ell}$,
+\[
+F(Z) = \hat{F}_1(Z) \cdot \hat{F}_2(Z) \cdots \hat{F}_k(Z)
+\pmod{p^{\ell}}
+\]
+
+\item Combine the $\hat{F}_i$ as neeeded to into true divisors of $F$
+over $\Z$.
+\end{enumerate}
+
+Each of these steps needs a a bit of clarification.  The behavior of
+this algorithm is most unsatisfactory when the final stage needs to
+try many combinations of the $\hat{F}_i$ to get true factors over
+$\Z$. Thus the best primes in the first step, are those for which the
+factorization of $F(Z)$ modulo $p$ is as close as possible to the
+factorization of $F(Z)$ over $\Z$.  Since univariate factorization is
+efficient, one usually tries several primes $p$ and picks the one
+that gives the coarsest factorization.  In particular, one should
+avoid primes for $F(Z)$ is not square free.  Depending on the
+particular constants of the finite field factorization algorithm,
+primes near the word size of the processor are usually chosen to
+minimize the number of Newton steps required.  In current
+implementations, between five and ten different primes may be tried.
+
+The coefficients of the divisors of $F(Z)$ are bounded in absolute
+value by
+\[
+B = \sqrt{d+1} \cdot 2^d |F|.
+\]
+Since the coefficients may either positive or negative $p^{\ell}$ must
+exceed $2B+1$.  Finally, notice that the finite field factorization
+will yield monic polynomials.  Thus the coefficients of $\hat{F}$ are
+images of $f_i/f_0$.  In order to recover both the numerator and
+denominator we need an additional factor of $2$.  So $\ell$ needs to
+be chosen such that
+\[
+p^{\ell} > 2(2B+1).
+\]
+
+Either the system of equations formulation or the Zassenhaus
+formulation can then be used to compute $\hat{F}_i(Z)$ from the
+$F_i(Z)$.  The Zassenhaus formulation is often chosen because there is
+no need to worry about sparsity and since the overhead of the
+Zassenhaus formulation is often smaller in this case.
+
+The most time consuming step is the last one.  It actually has two
+parts, once we have a potential factor of $F$ modulo $p^{\ell}$, we
+need to convert it to a factor over $\Z$ and then we have to perform
+the actual test divisions.
+
+The factors modulo $p^{\ell}$ are monic.  One way to convert them to
+potential divisors over $\Z$ is to multiply the divisor by the leading
+coefficient of $F$, $f_0$ and convert to a a balanced representation.
+The primitive part of the resulting polynomial is the potential
+divisor.  If the absolute value of any of the coefficients is larger
+then the coefficient bound then there is no need to even attempt the
+trial division.
+
+While trial division was also used in the sparse modular {\sc gcd}
+algorithm, there it is expected that most trial divisions will be
+successful.  With polynomial factorization, the opposite is true.
+Very often the trial division will be unsuccessful.  The following
+observation can be used to significantly minimize the cost of trial
+divisions.  Note that if the polynomial $G(Z)$ divides $F(Z)$ then,
+for all integers $r \in \Z$, $G(r)$ divides $F(r)$.  There is no point
+in performing a polynomial trial division if this division fails.
+Experience has shown \cite{Abbot85} that using $r= 0$ and $r=1$ will
+often obviate the need to perform any polynomial test divisions.
+
+\section{Asymptotically Good Algorithms}
+\label{UF:LLL:Sec}
+
+To illustrate the ideas behind the asymptotically good, lattice
+reduction algorithm we present a simple factorization algorithm that
+uses lattices in the same spirit as the Lenstra-Lenstra-Lov\'asz
+algorithm discussed below.
+
+Let $F(Z)$ be a polynomial over $\Z$:
+\[
+F(Z) = f_0 Z^d + f_1 Z^{d-1} + \cdots f_d,
+\]
+and let $\alpha$ be an approximation of some zero of $F(Z)$ that has
+been compute to some precision.  The minimal polynomial for $\alpha$
+is an irreducible polynomial that divides $F(Z)$, say $G(Z)$.
+Repeating this process with $F(Z)/G(Z)$ gives the factorization of
+$F(Z)$.
+
+The minimal polynomial for $\alpha$ is found by first try to find a
+linear polynomial satisfied by $\alpha$, then a quadratic and so on.
+To determine if there is a polynomial of degree $k$ that is satisfied
+by $\alpha$, we create the $k+1$ dimensional lattice ${\scr L}_k$ that
+has as basis vectors:
+\[
+(\alpha^k, 0, \ldots, 0), \quad(0, \alpha^{k-1}, 0, \ldots, 0), 
+\quad\ldots, \quad(0, \ldots, 0, 1).
+\]
+The Lov\'asz basis reduction algorithm of \sectref{} can then be used
+to find a small vector in ${\scr L}_k$, \ie, rational integers $g_0,
+\ldots, g_k$ such that 
+\[
+\left|g_0 \alpha^k + g_1 \alpha^{k-1} + \cdots + g_k\right| =
+\epsilon_k
+\]
+is small.  If $\epsilon_k$ is sufficiently small then the zero that
+$\alpha$ represents is actually a zero of
+\[
+G(Z) = g_0 Z^k + g_1 Z^{k-1} + \cdots + g_k
+\]
+and $G(Z)$ is a divisor of $F(Z)$.
+
+

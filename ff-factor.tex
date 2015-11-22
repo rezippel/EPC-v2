@@ -1,0 +1,486 @@
+%$Id: ff-factor.tex,v 1.1 1992/05/10 19:40:35 rz Exp rz $
+
+\chapter{Factoring over Finite Fields}
+\label{Poly:FF:Factor:Chap}
+
+Factoring polynomials is of the most challenging problems in algebraic
+computation.  The complete algorithm for factoring multivariate
+polynomials over the rational integers will use nearly all of the
+techniques we have developed thus far.  In this chapter we consider
+the comparatively simpler problem of factoring polynomials over the
+finite fields.  This problem arises in coding theory and is a step in
+factoring polynomials over the rational integers.
+
+Let $F(X)$ be a univariate polynomial with coefficients in $\F_q$,
+where $q=p^r$.  As it turns out there are two simple steps we can take
+that simplify the factorization problem.  In \sectref{FFac:Sqfr:Sec}
+we perform a \keyi{square free factorization} of $F$, \ie, factor $F$
+so that
+\[
+F(X) = F_1(X) F_2(X)^2 F_3(X)^3 \cdots F_k(X)^k,
+\]
+where the $F_i$ are pairwise relatively prime and $F_i$ and $F_i'$ are
+relatively prime.  Square free decomposition of polynomials is a
+simple sequence of GCD computations and for univariate polynomials
+direct computation is almost always efficient
+
+Distinct degree factorization of the $F_i$, \ie,
+\[
+F_i(X) = F_{i1}(X) F_{i2}(X) F_{i3}(X) \cdots F_{i\ell}(X),
+\]
+where the $F_{ij}(X)$ are products of irreducible polynomials of
+degree $j$.  Again this is a relatively simple process for univariate
+polynomials over finite fields.
+
+
+The most expensive part of univariate factorization over finite fields
+is factoring the $F_{ij}$.  In the case of factoring $F_{i1}$ this is
+just finding zeroes in $\F_q$.  The determining the factors of
+$F_{ij}$ corresponds to finding zeroes in $\F_{q^j}$.  The techniques
+for doing this are discussed in \sectref{}.
+
+\section{Square Free Decomposition}
+\label{FFac:Sqfr:Sec}
+
+The square free decomposition algorithms we are about to describe are
+valid for polynomials over an integral domain.  For simplicity
+however, we will describe the technique for polynomials over a field
+$k$, even though the only field for we will use these algorithms is
+$\F_q$.  \sectref{GFac:Sqfr:Sec} describes how to combine the
+techniques of this section with the lifting techniques of
+\chapref{Sparse:Hensel:Chap} to compute square free decompositions of
+multivariate polynomials and polynomials over the rational integers.
+
+Let $F(X)$ be a monic polynomial over the field $k$,
+\[
+F(X) = X^n + f_1 X^{n-1} + \cdots + f_n.
+\]
+The \keyi{square
+free decomposition} of $F(X)$ is a set of polynomials $F_1, \ldots,
+F_k$ such that
+\begin{equation}\label{FFac:Sqfr:Eq}
+F(X) = F_1(X) \cdot F_2(X)^2 \cdot F_3(X)^3 \cdots F_k(X)^k,
+\end{equation}
+the $F_i$ are relatively prime and for each $i$, $F_i$ and $F_i'$ are
+relatively prime.  
+
+The derivative of $F(X)$ is
+\[
+F'(X) = nX^{n-1} + (n-1) f_1 X^{n-2} + \cdots + f_{n-1}.
+\]
+If $F(X)$ is a constant, its derivative will be zero.  If the
+characteristic of $k$ is positive, then $F'$ will also be zero if all
+of the exponents are multiples of $p$, \ie, if $F(X) = \hat{F}(X^p)$.
+For instance, for $k= \F_7$
+\[
+A(X) = X^{49} + 3 X^{14} + 3
+\]
+has derivative zero.  However, if the characteristic of  $k$ is $\F_{p^r}$
+then then $A(X) = \hat{A}(X^p) = (\hat{F}(X))^p$, where $\hat{A}(X) =
+X^7 +3X^2 + 3$.  This
+may not for more general fields.  For instance, if $B(X) = X^7 +Y$,
+where $k = \F_7(Y)$, then $B'(X) = 0$, but
+\[
+X^7 + Y = (X+Y^{1/7})^7.
+\]
+So algebraic extensions are needed in this case.
+
+The condition that $F_i$ and $F_i'$ be relatively prime is equivalent
+to saying that the $F_i$ have no multiple zeroes.  For instance, let
+$G(X) = (X - \alpha)^r H(X)$, where $(x - \alpha)$ does not divide
+$H(X)$ and $r \ge 0$.  We say that $\alpha$ is a {\em zero of
+multiplicity}\index{multiplicity!of polynomial zeroes} $r$ in this
+case. 
+
+ The multiplicity of a polynomial factor\index{multiplicity!of
+polynomial factor} is defined is precisely the same fashion.  So each
+of the factors of $F_i$ in \eqnref{FFac:Sqfr:Eq} have multiplicity $i$
+in $F(X)$.
+
+Assume that $r$ is positive and assume the derivative of $G$ is not
+zero:
+\[
+\begin{eqalign}
+  G'(X) &= r (X - \alpha)^{r-1} H(X) + (X - \alpha)^r H'(X), \\
+  & = (X - \alpha)^{r-1}\left[r H(X) + (X - \alpha) H'(X)\right].
+\end{eqalign}
+\]
+Since $(X - \alpha)$ does not divide $H(X)$, $\alpha$ has multiplicity
+precisely $r-1$ in $G'(X)$.  If the multiplicity of $\alpha$ in $G$ is
+greater than one then $\gcd(G, G') \not = 1$.  So $(G, G') = 1$
+implies that $G(X)$ has no multiple zeroes. Notice that the
+requirement that $G'(X) \not= 0$ is also covered by $(G, G') = 1$.
+
+Following proposition generalizes this result to polynomial factos.
+Its proof is the same, but requires that each irreducible factor
+possess a zero.  This is true in the algebraic closure of $k$.
+
+\begin{proposition}
+Let $G(x)$ be an irreducible factor of $F(X)$, a polynomial over a
+field.  If the GCD of $F(X)$ and $F'(X)$ is $1$ then the multiplicity
+of $G(X)$ in $F(X)$ is exactly $1$.
+\end{proposition}
+
+\medskip
+With these ideas, we can construct an algorithm for computing the
+square free decomposition $F(X)$.  By the previous reasoning $F_i(X)$
+has multiplicity precisely $i-1$ in $F'(X)$, so
+\[
+(F(X), F'(X)) = F_2 F_3^2 \cdots F_k^{k-1} = G(X).
+\]
+Repeating this process with $G(X)$ gives
+\[
+(G(X), G'(X)) = F_3 F_4^2 \cdots F_k^{k-2} = H(X).
+\]
+Therefore,
+\[
+\begin{eqalign}
+\frac{F}{G} & = F_1 F_2 \cdots F_k, \\
+\frac{G}{H} & = F_2 \cdots F_k,
+\end{eqalign}
+\]
+and thus
+\[
+\frac{F \cdot H}{G \cdot G} = F_1.
+\]
+Repeating this process, we can compute the the $F_i$ in sequence.
+
+The following routine implements this approach.  Note that we have
+assumed that $F'$ is not zero.
+
+\begindsacode
+PolySQFR ($F(X)$) := $\{$ \\
+\> $G \leftarrow \mbox{PolYGCD}(F, \mbox{PolyDeriv}(F, X))$;\\
+\> $H \leftarrow \mbox{PolYGCD}(G, \mbox{PolyDeriv}(G, X))$;\\
+\> $i \leftarrow 1$;\\
+\> loo\=p $\{$\\
+\> \> $F_i \leftarrow (F/G)/(G/H)$; \\
+\> \> $(F, G, H) \leftarrow \mbox{PolyGCD}(G, H, (H, \mbox{PolyDeriv}(H, X)))$;\\
+\>\> $i \leftarrow i + 1$; \\
+\>\> $\}$\\
+\> $\}$
+\enddsacode
+
+\section{Distinct Degree Factorization}
+\label{FFac:Distinct:Sec}
+
+While square free decomposition algorithm applies to polynomials over
+any ring, distinct degree factorization is an operation that appears
+practical only for univariate polynomials over finite fields.  At this
+point, we assume that $F(X)$ is a square free monic polynomial over
+$\F_q$ of degree $n$, where $q= p^r$.  A \keyi{distinct degree
+factorization} of $F(X)$, is a set of polynomials $F_1, \ldots,
+F_{\ell}$ such that
+\[
+F(X) = F_1(x) \cdot F_2(X) \cdots F_k(X)
+\]
+and $F_j$ is the product of irreducible polynomials of degree $j$.
+
+By Fermat's little theorem, each element of $\F_q$ is a zero of $X^q-
+X$, \ie, 
+\[
+\prod_{\alpha \in \F_q} (X - \alpha) = X^q - X.
+\]
+So $X^q- X$ is the product of all the monic linear polynomial over
+$\F_q$.  Consequently, $F_1$ is the GCD of $F(X)$ and $X^q - X$.
+
+Similarly, the product of all monic polynomials of degree less than
+$\ell$ is $X^{q^\ell} -X$ and we have
+\[
+(F(X), X^{q^{\ell}} - X) = F_1(X) \cdots F_{\ell}(X).
+\]
+
+Distinct degree factorization is thus just a matter of computing a few
+GCD's.  However, a trick is necessary.  For large values of $q$ it is
+the standard remainder algorithm for the first step of the Euclidean
+algorithm with $X^{q^{\ell}}-X$ by $F(X)$ will take $O(q^{\ell})$
+steps, which is too costly.  Instead, it is preferable to compute
+$X^{q^{\ell}}$ by repeated squaring modulo $F(X)$.  The following
+routine implements this.\index{polynomial exponentiation}
+
+\begindsacode
+PolyExptMod (base, $M$, $F$) := $\{$ \\
+\> $\mbox{prod} \leftarrow 1$; \\
+\> $\mbox{base} \leftarrow \mbox{PolyRem}(\mbox{base}, F)$; \\
+\> loo\=p $\{$\\
+\>\> if $\mbox{oddp}(M)$ then $\mbox{prod} \leftarrow \mbox{PolyRem}(\mbox{prod} \times \mbox{base}, F)$;\\
+\>\> $M \leftarrow \lfloor M/2 \rfloor$; \\
+\>\> if $M = 0$ then $\mbox{return}(\mbox{prod})$;\\
+\>\> else $\mbox{base} \leftarrow \mbox{PolyRem}(\mbox{base}
+  \times\mbox{base}, F)$; \\
+\>\> $\}$\\
+\>$\}$
+\enddsacode
+
+\keyw{PolyExptMod} computes $\mbox{\tt base}^M \mod{F}$.  The loop
+inside {\tt PolyExptMod} is executed $O(\log M)$ times.  During each
+loop at most two polynomial multiples are performed, and one
+polynomial remainder.  Each of the polynomials involved is of degree
+no larger than $\deg F = n$.  Thus the number of coefficient
+operations performed is $O(n\log M)$.
+
+The GCD of $F(X)$ and $X^{q^\ell} -X$ is computed as follows
+\[
+\mbox{\tt PolyGCD}(F(X), \mbox{\tt PolyExptMod}(X, q^{\ell}, F(X)) - X)
+\]
+That is, the first remainder is computed using repeated squaring, and
+then the rest of the computation is done using any of the usual
+Euclidean algorithms.  
+
+Combining these ideas we have the following routine for computing the
+distinct degree factorization of $F$.
+\begindsacode
+PolyDistinctDegree ($F$) := $\{$ \\
+\> declare $F \in \F_q[X]$; \\
+\> $i = 1$; \\
+\> loo\=p while $F \not= 1$ $\{$ \\
+\>\> if \=$i | \deg F$ then $\{$ \\
+\>\>\> $F_i \leftarrow
+      \mbox{PolyGCD}(F(X), \mbox{PolyExptMod}(X, q^i, F(X)) - X)$;\\
+\>\>\> $F \leftarrow F/F_i$ ; \\
+\>\>\> $\}$ \\
+\>\> $i \leftarrow i + 1$;\\
+\>\> $\}$ \\
+\> $\}$
+\enddsacode
+
+\noindent
+Notice that each time we determine an $F_i$ we divide it out of $F$.
+This makes the succeeding GCD's a bit smaller and simplifies dealing
+with factors of degree less than $i$.  
+
+Let $n$ denote the degree of $F$ in $X$.  Asymptotically, the
+computation of each $F_i$ takes time $O(n \log q + n^2)$.  The loop in
+\keyw{PolyDistinctDegree} is repeated at most $d(n)$ time, where
+$d(n)$ is the number of divisors of $n$.  Since $d(n) = O(n^{1/2})$ by
+\longpropref{NT:Divisor:Est:Prop} the total time taken is bounded by
+$O(n^{3/2}(\log q) + n^{5/2})$.
+
+
+\section{Finding Linear Factors}
+\label{FFac:Linear:Sec}
+
+Using the techniques of the last two sections, we are left with the
+problem of factoring a univariate polynomials all of whose factors are
+of the same degree.  Splitting polynomials of this type into
+irreducible components essentially reduces to zero finding in $\F_q$
+or some extension of $\F_q$.  This section illustrates the basic ideas
+involved, and their analysis, by focusing on the case where $F(X)$ is
+the product of linear factors.  Next section will consider this
+problem in more generality.
+
+Thus, in this section we assume that $F(X)$ is a monic, square free
+polynomial over $\F_q$ that is the product of linear factors.
+Further, assume that $q$ is odd and denote $n$ the degree of $F(X)$.
+Since $F(X)$ is both square free an the product of linear factors, it
+must divide $X^q - X$.  This polynomial is easily factored:
+\[
+X^q - X = X\cdot (X^{(q-1)/2} - 1)\cdot (X^{(q-1)/2} + 1) 
+  = X \cdot R(X) \cdot N(X)
+\]
+If the zeroes of $F(X)$ are uniformly distributed then about half of
+them will be zeroes of $N(X)$ and half of $R(X)$, \ie, half will be
+quadratic residues and half will not be.  Denote the GCD of $F(X)$ and
+$X^{(p-1)/2} - 1$ by $F_1(X)$.  The expected degree of $F_1(X)$ is
+$n/2$.  Notice that by using \keyw{PolyExptMod} we can do this in $O(n
+\log q)$ time.  So we have reduced the problem of factoring a
+polynomial of degree $n$ to that of factoring one of degree $n/2$.  If
+we can continue this splitting process with $F_1(X)$ and
+$F(X)/F_1(X)$, then after about $n$ GCD computation we should be able
+to split $F(X)$ into linear factors.  This would lead to an $O(n^2
+\log q)$ factoring algorithm. 
+
+The technique of the previous paragraph split the zeroes of $F(X)$ up
+into classes depending upon whether they were quadratic residues or
+non-residues.  We can scramble the quadratic character of the zeroes
+by adding an arbitrary constant to each zero.  That is, by working
+with $F_1(X-b)$ instead $F(X)$.  Intuitively we are using the
+following proposition, which is proven more precisely as
+\longpropref{QRDistribution:Prop}. 
+
+\begin{proposition}
+Let $\{ a_i \}$ be a set of quadratic residues modulo $p$.  The
+expected portion of quadratic residues in $\{ a_i + b\}$ is $1/2$.
+\end{proposition}
+
+Thus we can split $F_1(X)$ further by computing the GCD of $F_1(X- b)$
+and $X^{(q-1)/2} - 1$.  Further splits can be obtained by choosing
+other values for $b$.  It turns out that is is slightly more efficient
+to take the GCD of $F_1(X)$ and $(X+b)^{(q-1)/2} - 1$ so that we can
+avoid the cost of shifting the $F_1(X)$ (we always need to raise $X$
+to the $(q-1)/2$ power).
+
+\begindsacode
+PolyLinearFactors ($F$) := $\{$ \\
+\> declare $F \in \F_q[X]$; \\
+\> if $\deg F = 1$ then $\{ F \}$; \\
+\> els\=e $\{$\\
+\> \> $F_1 \leftarrow 
+   \mbox{PolyGCD}(F, \mbox{PolyExptMod}(X+\mbox{random}(\F_q), (q-1)/2, F) -1)$;\\
+\>\> if $\deg F_1 = \deg F$ or $0 = \deg F_1$ then $\mbox{PolyLinearFactors}(F)$;\\
+\>\> else $\mbox{PolyLinearFactors}(F_1) \cup \mbox{PolyLinearFactors}(F/F_1)$;\\
+\>\> $\}$\\
+\> $\}$
+\enddsacode
+
+\noindent
+The routine \keyw{random} chooses a uniformly distributed random
+element of from its argument, which is assumed to be a finite set.
+
+This algorithm will require $O(n)$ GCD computations to separate the roots of
+$F(X)$.  Each one will require one call to \keyw{PolyExptMod}, which
+requires $O(n^2 \log p)$ coefficient operations, a small polynomial GCD of
+about $O(n^3)$ operations and a division of no more than $O(n^2)$ operations.
+Thus each separation requires about $O(n^2 \log p)$, and the whole
+process will require $O(n^3 \log p)$ operations to compute the
+linear factors of a polynomial.
+
+\section{The Cantor-Zassenhaus algorithm}
+
+\section{Distribution of Quadratic Residues}
+\label{Distribution:QR:Sec}
+
+Let $G$ be an multiplicative abelian group.  For instance, $\F_p^{\ast}$,
+the quadratic residues of $\F_p$, etc.  A map $\chi: G \rightarrow \C$ is a
+called a \keyi{character} if the absolute value of $\chi(g)$ for all
+elements of $G$ is $1$ and if $\chi(ab) = \chi(a) \chi(b)$ for all $a, b
+\in G$.  If $\chi_1$ and $\chi_2$ are two characters, then $\chi_3$ is also
+a character, where $\chi_3(a) = \chi_1(x) \chi_2(x)$.  The character
+$\chi_0$, where $\chi_0(a) = 1$ is the identity element for character
+multiplication.  Furthermore, each character $\chi$ has an inverse, \eg{} the 
+character $\overline{\chi}$ defined by $\overline{\chi(a)} =
+\overline{\chi(a)}$ (complex conjugate).  Thus the characters of $G$ form a
+group.  A character $\chi$ has {\em degree}\index{degree, of a character}
+$d$ if $\chi^d = \chi_0$.
+
+The proof of the following theorem and related results are in
+\cite{Schmidt:Equations:FF}.
+
+\begin{proposition}
+\label{CharSum:Estimate:Prop}
+Let $f(x) \in \F_q[x]$ have $m$ distinct zeroes and assume that $y^d -
+f(x)$ is absolutely irreducible.  If $\chi \not= \chi_0$ is a
+multiplicative character of degree $1$ then
+\[
+\left|\sum_{x \in \F_q} \chi(f(x))\right| \le (m-1) q^{1/2}.
+\]
+\end{proposition}
+
+The following proposition is due to {\BenOr} \cite{BenOr81}.
+
+As usual let $\F_q$ be a finite field of characteristic $p$.  Let
+$\chi$ be the quadratic residuacity character:
+\[
+\chi(a) = 
+  \begin{cases}
+    0, & if $a = 0$\\
+    1,& if $a$ is a quadratic residue\\
+    -1,& otherwise
+  \end{cases}
+\]
+ 
+\begin{proposition}
+\label{QRDistribution:Prop} Let $a_1, \ldots, a_k$ be distinct
+elements of $\F_q$, and let $\epsilon_\ell = \pm1$ for $\ell = 1,
+\dots, k$.  The set $N$ is defined to be:
+\[
+N = \{\, \delta \in \F_q \mid \chi(a_\ell + \delta) = \epsilon_\ell, \ell =
+1, \ldots, k\,\}.
+\]
+Then the cardinality of $N$ satisfies
+\[
+\left|\#N - {q \over 2^k}\right| < {k \over 2}(1 + \sqrt{q}).
+\]
+\end{proposition}
+
+\begin{proof}
+The proof of this proposition proceeds by translating the statement
+$\chi(a_{\ell} + \delta) = \epsilon_{\ell}$ into a statement about the
+number of solutions of a system of $k$ equations in $k+1$ unknowns
+over $\F_q$.  We can then estimate $\#N$ by counting the solutions of
+the equations.
+
+First notice that if neither $k_1$ nor $k_2$ is a quadratic residue,
+then $k_1 k_2$ is a quadratic residue.  Choose $d$ to be a quadratic
+non-residue, and let
+\[
+d_i = 
+  \begin{cases}
+    1, & if $\epsilon_i = 1$\\
+    d & if $\epsilon_i = -1$
+  \end{cases}
+\]
+Now construct the system of equations
+\begin{equation}\label{FFac:BenOr:Eqs}
+\begin{eqalign}
+  y_1^2 & = d_1 (x+a_1) \\
+    & \vdots\\
+  y_k^2 & = d_k (x+a_k)
+\end{eqalign}
+\end{equation}
+If $\chi(a_i + \delta) \not= \epsilon_i$ then $y_i^2 = d_i(\delta +
+a_i)$ will not have any solutions.  If $\chi(a_i + \delta) =
+\epsilon_i$ then $y_i^2 = d_i(\delta + a_i)$ will have either $1$
+solution if $\delta+a_i =0$ or two solutions otherwise.  Let $M$ be
+the number of solutions of \eqnref{FFac:BenOr:Eqs}, and $M_0$ the
+number of solutions where any of the $y_i$ are zero.  Then
+\[
+M - M_0 = 2^k \# N.
+\]
+
+We can count $M_0$ easily.  There are at most $k$ different values of
+$x$ for which \eqnref{FFac:BenOr:Eqs} has a solution with one of the
+$y_i = 0$.  For each of these, the each of the other $y_j$ can take on
+two different values.  Thus
+$M_0 \le k 2^{k-1}$, and combining with the expression for $M$ we have
+\begin{equation}\label{FFac:BenOr:Eqsa}
+M =2^k\left(\#N + \frac{k}{2}\right).
+\end{equation}
+
+Now we count the total number of solutions to \eqnref{FFac:BenOr:Eqs},
+$M$.  By \longpropref{NumQuadSol:Prop}, the number of solutions of
+$y_\ell^2 = d_\ell (x+a_\ell)$ is $1 + \chi(d_\ell x + d_\ell
+a_\ell)$.  So,
+\[
+\begin{eqalign}
+  M &= \sum_{x \in \F_q} \left[ 
+      \prod_{\ell = 1}^k \left(1 + \chi(d_\ell x + d_\ell a_\ell)\right)
+      \right] 
+     = \sum_{x \in \F_q} \sum_{0 \le i_1, \ldots, i_k \le 1}
+      \prod_{\ell = 1}^k \chi(d_\ell x + d_\ell a_\ell)^{i_\ell} \\
+    & =  \sum_{0 \le i_1, \ldots, i_k \le 1} \sum_{x \in \F_q} 
+      \chi\left(\prod_{\ell = 1}^k (d_\ell x + d_\ell
+      a_\ell)^{i_\ell}\right)
+\end{eqalign}
+\]
+
+For $i_1 = \cdots = i_\ell = 0$ the argument to the $\chi$ is $1$, and
+thus the sum over the elements of $\F_q$ will be $q$.  In the other
+cases, we have a sum like
+\[
+\sum_{x \in \F_q} \chi(g(x)),
+\]
+where $g(x)$ is square free polynomial in $x$ of degree at most
+$\ell$.  By \propref{CharSum:Estimate:Prop}, we have
+\[
+\left|\sum_{x \in \F_q} \chi(g(x))\right| < (\ell -1 ) \sqrt{q}.
+\]
+So,
+\[
+|M - q| < \sum_{1 \le \ell \le k} {k \choose \ell} (\ell -1) \sqrt{q} <
+k 2^{k-1} \sqrt{q}.
+\]
+Combining this with \eqnref{FFac:BenOr:Eqsa} gives
+\[
+\left| \#N + \frac{k}{2} - \frac{q}{2^k}\right| < \frac{k}{2}\sqrt{q},
+\]
+or
+\[
+\left|\#N - {q \over 2^k}\right| < {k \over 2} (1 + \sqrt{q}).
+\] 
+\end{proof}
+
+
+\section*{Notes}
+
+Additional papers: Moenck \cite{Moenck77}.

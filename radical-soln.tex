@@ -1,0 +1,304 @@
+%$Id: radical-soln.tex,v 1.1 1992/05/10 19:44:06 rz Exp echris $
+\chapter{Solutions in Terms of Radicals}
+\label{Radical:Soln:Chap}
+
+One of the fascinating challenges of renaissance mathematics was to
+express the the zeroes of a polynomial in terms of radicals.  In the
+fifteenth and sixteenth centuries, formulas for the zeroes of cubic
+and quartic polynomials protected as valuable secrets, which they were
+since they allowed on to excel and the public equation solving
+contests.  For centuries, a major problem was to determine similar
+formulas for higher degree equations.
+
+All this came to a halt with the work of {\Abel} \cite{Abel26} who
+proved that there existed polynomials of degree five whose zeroes
+could not be expressed in terms of radicals.  Finally, {\Galois}
+\cite{Galois62} developed a theory that detailed the possible polynomial
+relations among the zeroes of a polynomial.  
+
+Currently, with our understanding of Galois theory and ability to
+compute with general algebraic expressions, it is less important than
+ever to be able to express zeroes of polynomials in terms of radicals.
+Nonetheless, it remains an interesting problem because people tend
+have better intuition about (moderate sized) expressions involving
+radicals.
+
+In this chapter we consider several aspects of solving equations in
+terms of radicals.
+
+\section{Palindromic Equations}
+\label{Palindrome:Eq}
+
+A polynomial whose coefficients form a ``palindomic'' sequence, \ie, 
+\[
+f(X) = a_0 X^{2n} + a_1 X^{2n-1} + a_2 X^{2n-2} + \cdots +
+a_2 X^2 + a_1 X + a_0,
+\]
+is called a \key{palindomic polynomial}.  The zeroes of such
+polynomials can be expressed in terms of polynomials of degree $n/2$
+using only square roots.  This is achieved as follows.  We can write
+\[
+\frac{f(X)}{X^{n/2}} = a_0 \left(X + \frac{1}{X}\right)^{n} 
+  + a_1 \left(X + \frac{1}{X}\right)^{n-1}  
+  + (a_2 - n a_0) \left(X + \frac{1}{X}\right)^{n-2} + \cdots.
+\]
+Let $\alpha_1, \ldots, \alpha_n$ be the zeroes of
+\[
+g(X) = a_0 X^n + a_1 X^{n-1} + (a_2 - n a_0) X^{n-2} + \cdots .
+\]
+Then 
+\[
+\frac{\alpha_i \pm \sqrt{\alpha_i^2 -4}}{2}, \quad \mbox{for $i =
+1,\ldots, n$}
+\]
+are the zeroes of $f(X)$.
+
+If
+\[
+g(X) = b_0 X^{n} + b_1 X^{n-1} + \cdots + b_n
+\]
+such that
+\[
+f(X) = X^n g\left(X + \frac{1}{X}\right),
+\]
+then the $b_i$ must satsify the following triangular systems of
+equations:
+\[
+\begin{aligned}
+a_0 &= b_0, \\
+a_2 &= b_2 + n b_0, \\
+a_4 &= b_4 + (n-2) b_2 + \frac{n(n-1)}{2} b_0, \\
+a_6 &= b_6 + (n -4) b_4 + \frac{(n-2)(n-3)}{2} b_2 +
+\frac{n(n-1)(n-2)}{3!} b_0, \\
+ & \vdots
+\end{aligned}
+\]
+
+\[
+\begin{aligned}
+a_k& = b_k + \sum_{i=1}^{k/2} {n - k + 2i \choose i} b_{k-2i}, \\
+a_{k+1}& = b_{k+1} + \sum_{i=1}^{k/2} {n - k + 2i -1 \choose i}
+b_{k-2i+1}.
+\end{aligned}
+\]
+
+
+\section{Zeroes of Cyclic Equations}
+\label{Cyclic:Zeroes:Sec}
+
+This section gives an algorithm for expressing the zeroes of cyclic
+polynomials in terms of radicals.
+
+Let $\zeta_n$ be a primitive $n${\th} root of unity. $\Q(\zeta_n)$ is
+a normal abelian extension of $\Q$ of degree $\phi(n)$.  Since the
+Galois group is abelian it can be decomposed into a direct sum of
+cyclic subgroups.  This decomposition corresponds to representing the
+field $\Q(\zeta_n)$ as a compositum of cyclic extensions of $\Q$.  If
+$n = ab$ represents a nontrivial factorization of $n$ with
+$\gcd(a,b)=1$ and $ a,b \in \Z$, then $\zeta_a\zeta_b$ is a primitive
+$n${\th} root of unity.  This permits us to assume $n$ to be a prime
+power $p^k$.  Given a primitive $p${\th} root of unity $\zeta_p$,
+$(\zeta_p)^{p^{1-k}}$ is a primitive $p^k${\th} root of unity. Thus if
+we can find a radical representation for a primitive $p${\th} root of
+unity where $p$ is any prime, then we can find the same for any
+$n${\th} root of unity.  Note that given a particular primitive
+$n${\th} root of unity, $\zeta_n$, all others can be expressed as
+$\zeta_n^k$ where $0<k<n$ and $\gcd(k,n)=1$.
+
+\begin{figure}
+\[
+\begin{diagram}
+\node[2]{\Q(\zeta_{p^2 q r^3}) 
+     = \Q(\zeta_{p^2} \zeta_{q} \zeta_{r^3})} \arrow{sw,-} \arrow{sse,-} \\
+\node{\Q((\zeta_{p})^{1/p}) = \Q(\zeta_{p^2})} \arrow{s,-} \\
+\node{\Q(\zeta_q)}\arrow{s,-} 
+   \node[2]{\Q((\zeta_{r})^{1/r^2}) = \Q(\zeta_{r^3})} \arrow{s,-} \\
+\node{\Q(\zeta_p)} \arrow{se,-} \node[2]{\Q(\zeta_r)} \arrow{sw,-}\\
+\node[2]{\Q}
+\end{diagram}
+\]
+\end{figure}
+
+
+
+
+Thus the real task is to express primitive $p${\th} roots of unity in
+radicals.  We will assume inductively that we can express primitive
+$n${\th} roots of unity in radicals for any $n<p$, noting that
+$-1^2=1$ yields a basis for the induction.  $\Q(\zeta_p)$ is of degree
+$p-1$ over $\Q$, with a cyclic galois group that is isomorphic to
+$\F_p^{\ast}$.  Our approach is based on the constructive properties
+of the following proposition.
+
+\begin{proposition}
+Let $E$ be a cyclic extension of degree $n$ over a field $F$
+containing the $n${\th} roots of unity where $n$ is not divisible by
+the characteristic, then $E = F(x)$ where $x^n \in F$.
+\end{proposition}
+
+Before applying this theorem we will need to adjoin the $p-1${\th} roots
+of unity to $\Q$ but by assumption they are already expressible in
+radicals.  Since $\Q(\zeta_{p(p-1)}) = \Q(\zeta_p,\zeta_{p-1})$ and
+$\phi(p(p-1)) = \phi(p) \phi(p-1)$, the minimal polynomial for
+$\zeta_p$ over $\Q$ is still irreducible over $\Q(\zeta_{p-1})$ and
+the Galois group, $G$, of $\Q(\zeta_{p(p-1)})$ over $\Q(\zeta_{p-1})$
+is isomorphic to the group of $\Q(\zeta_p)$ over $\Q$.  If we were to
+use this algorithm for more general cyclic extensions, then we might
+need to perform an algebraic factorization at this point, but in our
+case we can skip it.
+
+Let $\sigma$ be a generator of the cyclic group $G$. Then $\sigma$
+must send $\zeta_p$ to $\zeta_p^j$ where $1<j<p$ since the image must
+also be a primitive $p${\th} root of unity.  Since $\sigma$ generates
+$G$, $j$ must be a generator of $\F_p^{\ast}$.
+We want to find the $x$ whose existence is guaranteed by the theorem.
+$\sigma$ must map such an $x$ to $\xi x$ where $\xi$ is a primitive
+$p-1${\th} root of unity, and conversely any nonzero element $y \in E$
+that is mapped to $\xi y$ has the property that $E = F(y)$ and
+$y^{p-1} \in F$.  We claim the following $y$ will work:
+\begin{equation} \label{Rad:HilGen:Eq}
+y=\sum_{i=1}^{p-1} {\sigma^i(\zeta_p) \over \xi^i}.
+\end{equation}
+Applying $\sigma$ and dividing by $xi$ only increases the summation
+lints:
+\[
+{\sigma(y) \over \xi} = \sum_{i=2}^p {\sigma^i(\zeta_p) \over
+\xi^i} = \sum_{i=1}^{p-1} {\sigma^i(\zeta_p) \over \xi^i},
+\]
+since $\sigma$ and $\xi$ both have order $p-1$, $\sigma^p=\sigma$ and
+$\xi^p=\xi$. Thus, $\sigma(y) = \xi y$.  
+
+We only need to show that $y$ is nonzero. $\sigma^i(\zeta_p)$ for
+$1\leq i\leq p-1$ produces a permutation of the powers of $\zeta_p$
+between 1 and $p-1$.  If $y$ is zero then $\zeta_p$ satisfies a
+polynomial of degree $p-1$ whose constant term is zero.  Since
+$\zeta_p \not = 0$ this implies that $\zeta_p$ satisfies a polynomial
+of degree $p-2$ with coefficients in $\Q(\xi)$.  This contradiction
+implies $y$ is nonzero.  In more general cyclic extensions of the form
+$F(w)$ we would have substituted successive powers of $w$ for
+$\zeta_p$ in the above formula until we found one that yielded a
+non-zero $y$.  This would require at most $p-1$ such computations.
+
+We have two remaining tasks left. First we must express $y$ in terms
+of radicals, then we must express $\zeta_p$ in terms of $y$. Since
+$y^{p-1}$ is invariant under $\sigma$ it must be an element of
+$\Q(\zeta_{p-1})$. We compute $y^{p-1}$ and reduce by the minimal
+polynomial for $\zeta_p$. This expresses $y$ as a $p-1${\th} root of
+an element of $\Q(\zeta_{p-1})$ and by the induction hypothesis we can
+express $\zeta_{p-1}$ in terms of radicals.
+
+In a similar fashion we compute $y^k$ for $0<k<p-1$ as polynomials in
+$\zeta_p$ of degree less than $p-1$.  If we now consider $\zeta_p^j$
+for $0<j<p-1$ as a set of variables, we have $p-2$ linear equations in
+$p-2$ variables.  This system has a unique solution that we can find
+by linear algebra performed over the field $\Q(\zeta_{p-1})$.  This
+expresses $\zeta_p$ in terms of $y$ and $\zeta_{p-1}$ both of which
+were already expressed in terms of radicals.
+
+Note that while we have demonstrated the capability of expressing
+$n${\th} roots of unity in terms of radicals, we do not advocate
+performing computations using this representation.  Questions of zero
+recognition and the desire to minimize expression size makes
+performing the arithmetic via minimal polynomials much more
+attractive.  Only for the purpose of displaying the final answer to
+the user should radical representation be used.
+
+\subsection{Primitive Cube Root of Unity}
+We illustrate the approach of this section with two examples.  This
+subsection determines the form in radicals of the cube root of $1$,
+$\zeta_3$, while the next subsection considers $\zeta_5$.  The cube
+root of unity is particularly simple, since it is the zero of a
+quadratic equation:
+\[
+X^2 + X + 1 =0.
+\]
+From this it is clear that 
+\[
+\zeta_3 = \frac{-1 \pm \sqrt{-3}}{2}.
+\]
+
+According to the theory, we will be able to express $\zeta_3$ in terms
+of radicals over $\Q[\zeta_2]$.  Since $\zeta_2 = -1$, we will
+actually be working over $\Q$.  The first step is to determine a
+generator for the Galois group of $\Q[\zeta_3]$ over $\Q$.  Since this
+is an extension of degree $2$, there is only one choice
+\[
+\sigma : \zeta_3 \mapsto \zeta_3^2.
+\]
+Using \eqnref{Rad:HilGen:Eq}, with $p = 3$, $\xi = \zeta_2 = -1$, we have
+\begin{equation}\label{Zeta3:Eq}
+\begin{aligned}
+  y &= \frac{\sigma(\zeta_3)}{-1} + \frac{\sigma^2(\zeta_3)}{1} 
+    = -\zeta_3^2 + \zeta_3^4, \\
+    & = 1 + 2\zeta_3.
+\end{aligned}
+\end{equation}
+
+We claim that $\sigma(y) = \zeta_2 y$:
+\[
+\sigma(y) = 1 + 2\zeta_3^2 = 1 + 2(- \zeta -1) = -1 - 2\zeta.
+\]
+Thus, $\sigma(y^2) = \zeta_2^2 y = y$ and $y^2$ must be an element of
+$\Q$.
+\[
+y^2 = 1 + 4 \zeta_3 + 2\zeta_3^2 = -3.
+\]
+Using \eqnref{Zeta3:Eq} we have
+\[
+\zeta_3 = \frac{-1 + \sqrt{-3}}{2}.
+\]
+
+\subsection{Primitive Fifth Root of Unity}
+The fifth root of unity somewhat more involved, $\zeta_5$
+
+\[
+\begin{aligned}
+y &= 1 + 2 \zeta_5 + (1+ i) \zeta_5^2 + (1 - i) \zeta_5^3, \\
+y^2 &= 1 + 2i + (2+4i) \zeta_5^2 + (2 + 4i) \zeta_5^3, \\
+y^3 & = 3-4i + (6-8i)\zeta_5 - (1 + 7i) \zeta_5^2 + (7 - i)\zeta_5^3.
+\end{aligned}
+\]
+
+\[
+y^4 = -15 + 20 i
+\]
+
+\[
+\zeta_5 = -\frac{1}{4} + \frac{1}{4} \left(20 i -15\right)^{1/4}
+ - \frac{1-2i}{20} \left(20 i -15\right)^{1/2}
+ + \frac{3+4i}{100} \left(20 i -15\right)^{3/4}.
+\]
+
+\section{Quintics}
+{\em See Young \cite{Young88} and Dummit \cite{Dummit91}}
+
+Example:
+\[
+X^5 - 10 X^3 - 20X^2 - 1505 X - 7412 = 0
+\]
+
+\[
+\begin{aligned}
+X &= \sqrt[5]{9}\sqrt[5]{(197 + 139 \sqrt{2}) + \sqrt{(197+139\sqrt{2})^2
+    -\frac{1}{81}(1 + \sqrt{2})^5}} \\
+ &+ \sqrt[5]{9}\sqrt[5]{(197 + 139 \sqrt{2}) - \sqrt{(197+139\sqrt{2})^2
+    -\frac{1}{81}(1 + \sqrt{2})^5}} \\
+ &+ \sqrt[5]{9}\sqrt[5]{(197 + 139 \sqrt{2}) + \sqrt{(197-139\sqrt{2})^2
+    -\frac{1}{81}(1 + \sqrt{2})^5}} \\
+ &+ \sqrt[5]{9} \sqrt[5]{(197 + 139 \sqrt{2}) - \sqrt{(197-139\sqrt{2})^2
+    -\frac{1}{81}(1 + \sqrt{2})^5}}
+\end{aligned}
+\]
+
+\section{Solvability in Terms of Radicals}
+
+See \cite{Young88,Cayley??}
+
+\section*{Notes}
+
+\footnotesize
+
+\notesectref{Cyclic:Zeroes:Sec} This discussion is based on notes due
+to {\Trager}. 
+
+\normalsize

@@ -1,0 +1,201 @@
+\chapter{Primality Testing}
+\label{Integer:Primality:Chap}
+
+\index{primality testing} 
+We want to determine if a rational integer, $N$, is a prime number,
+and when it is provide a succinct proof.  The simplest and most direct
+technique of checking the primeness of an integer is to divide it by
+each of the prime numbers less than $\sqrt{N}$, or more easily by all
+the odd integers less than $N$ (see Exercise~\ref{Primality:GCD:Ex},
+for an improvement).  If none divide $N$ then the number is prime.
+This technique takes $O(N^{{1 \over 2} + \epsilon})$ time, which is
+also the time required to factor a number near $N$ using the simplest
+possible algorithm.  Furthermore the proof that $N$ is a prime, is the
+set of results from the trial divisions.  Thus the size of the proof
+is also $O(\sqrt{N})$.
+
+We can produce a much smaller proof of the primality of $N$ by considering
+the group structure of $\Z/N\Z$.  The elements of $\Z/N\Z$ form a group of
+$\phi(N)$ elements which is equal to $N - 1$ if $N$ is prime, otherwise it
+is smaller.  Thus exhibiting an element of $\Z/N\Z$ of order $N-1$
+demonstrates that $N$ is prime.  The order of every element of $\Z/N\Z$
+divides $N-1$.  To show that $a \in \Z/N\Z$ has order $N-1$ we must
+demonstrate that $a^{M} \not= 1\pmod{N}$, where $M$ is a divisor of $N-1$.
+We should not try to compute $a^{M}\mod{N}$ for every $M$ that divides
+$N-1$ since there could be too many of them.  Instead we use least common
+multiples of the $M$'s that are less than $N-1$.  In particular, 
+let the factorization of  $N-1$ be
+\[
+N-1 = p_1^{e_1} \cdots p_k^{e_k}.
+\]
+Then to demonstrate that order of $a$ is $N-1$ we need to show that 
+\[
+a^{(N -1)/ p_i^{f_i}} \not\equiv 1 \pmod{N}
+\]
+for all $p_i$ and for $1 < f_i \le e_i$.  Thus we need try only $e_{1}+
+\cdots e_{k} \approx O(\log N)$ possible $M$'s.  Each exponentiation takes
+about $O(\log N)$ operations using repeated squaring.  Thus a proof that
+$a$ is of order $N-1$, and thus that $N$ is prime takes $O(\log^2 N)$
+operations, and the resulting proof is of length $O(\log^3 N)$.
+
+There are two problems with this approach.  First, we must factor $N-1$.
+This is slightly easier than factoring $N$ since we know that $2$
+divides $N-1$, but not a lot.  One way in which factoring $N-1$
+might be easy is if $N-1$ is the the product of small primes.  In
+this case $N-1$ is said to be {\em smooth\/}.\index{smooth numbers}  
+
+Second, we must find a element of order $N-1$.  There is no
+unconditional, direct technique for finding such elements quickly, as
+this is being written (Ed: give results using Riemann hypothesis.)
+Nonetheless this technique can be very effective when it does work.  It
+is called the $N-1$ primality test.
+
+However there are probabilistic approaches that are efficient.  They are
+discussed in the following section.  \Marginpar{Need to say something about
+{\Adleman}-Rumeley. Solovay-Strassen \cite{Solovay:Strassen}, Pratt
+\cite{Pratt:Primality}}
+
+\section{Modular Techniques}
+
+The idea behind the basic algorithms for testing the primality of $N$
+is to find an integer $a$ which is of order $N-1$ modulo $N$.  So the
+key question is, How do you prove an integer has order $n-1$?  
+
+If $a^m \not\equiv 1 \pmod{N}$ for every $m < N -1 $ then $a$ has order
+$N-1$., but this approach is clearly too costly.  We can do better
+under certain circumstances.  If $a^{N-1} \not\equiv 1$, then $a$
+cannot have order $N-1$ and $N$ cannot be a prime.  If $a^{N-1}\equiv
+1$ then the order of $a$, which we denote by $d$, divides $N-1$.  If
+\[
+N - 1 = q_1^{e_1} q_2^{e_2} \cdots q_k^{e_k}.
+\]
+then we must have
+\[
+d =  q_1^{f_1} q_2^{f_2} \cdots q_k^{f_k},
+\]
+where $f_i < e_i$.  If 
+\[
+a^{(N-1)/q_1} \not\equiv 1 \pmod{N}
+\]
+then $d$ does not divide $(N - 1)/q_1 = q_1^{e_1-1} \cdots q_k^{e_k}$.
+This means that $f_1 = e_1$.    This gives the following sufficient
+condition for the primality of $N$.
+
+\begin{proposition}
+Let $N-1 = q_1^{e_1} q_2^{e_2} \cdots q_k^{e_k}$, where the $q_i$ are
+distinct primes.  If there exists and $a$ such that
+\[
+a^{N-1} \equiv 1 \pmod{N},
+\]
+and for each $q_i$
+\[
+a^{(N-1)/q_i} \not\equiv 1 \pmod{N}
+\]
+then $N$ is a prime
+\end{proposition}
+
+Unfortunately, this proposition requires the complete factorization of
+$N-1$.  This can be quite difficult.  The following proposition, shows
+that we only need factor ``most'' of $N-1$.
+
+\begin{proposition}
+Assume $N-1 = R \cdot q_1^{e_1} \cdots q_k^{e_k}$, where the
+$q_i$ are distinct primes and none divide $R$.  Further assume that 
+$R < q_1^{e_1} \cdots q_k^{e_k}$.  If an integer $a$ can be found such
+that 
+\begin{equation}\label{Prim:Mod:GCD:Eq}
+(a^{(N-1)/q_i} -1, N) = 1
+\end{equation}
+for all $q_i$, but
+\[
+a^{N-1} \equiv 1 \pmod{N}
+\]
+then $N$ is a prime.
+\end{proposition}
+
+Equation \eqnref{Prim:Mod:GCD:Eq} is stronger than saying
+$a^{(N-1)/q_i} \not\equiv 1 \pmod{N}$ since it implies that 
+\[
+a^{(N-1)/q_i} \not\equiv 1 \pmod{P}
+\]
+for every prime divisor of $N$.  Fortunately, \eqnref{Prim:Mod:GCD:Eq}
+is only slightly more difficult to evaluate.
+
+\begin{proof}
+Let $P$ be the smallest odd prime divisor of $N$ and let the order of
+$a$ modulo $P$ be denoted $d$.  Using \eqnref{Prim:Mod:GCD:Eq}, we
+have
+\[
+a^{(N-1)/q_i} \not\equiv 1 \pmod{P},
+\]
+so by the reasoning of the previous proposition $q_1^{e_1} \cdots
+q_k^{e_k}$ divides $d$ and thus also divides $P$.  Since $q_1^{e_1}
+\cdots q_k^{e_k} > R$, $q_1^{e_1} \cdots q_k^{e_k}$ is greater than
+$\sqrt{N}$.  This means $P > \sqrt{N}$, which contradicts $P$ being
+the smallest factor of $N$.
+\end{proof}
+
+\section{Probabilistic Approaches}
+
+Short proofs of compositeness are easy to exhibit.  To prove that $N$ is
+composite we need only exhibit a factorization of $N$.  Unfortunately this
+proof is hard to find.  An easier proof can be found using Fermat's little
+theorem, Proposition \ref{FermatLittle:Prop}, which says that if $p$ is a
+prime and $a$ is not divisible by $p$, then $a^{p-1} \equiv 1 \pmod{p}$.
+If we can find an integer $a$ for which this equation is false, then $p$
+must be composite.  An $a$ for which $a^{N-1} \not\equiv 1\pmod{N}$ is
+called a {\em simple witness}\index{witness} to the compositeness of $N$.
+Unfortunately, there are some composite numbers that do not possess any
+simple witnesses.  These numbers are called
+\keyi{Carmichael numbers}.
+
+We call $a$ a {\em witness} to the compositeness of $N$ if it satisfies one
+of the following two relations: 
+\begin{enumerate}
+\item $a^{N-1} \not\equiv 1 \pmod{N}$ or 
+\item there exists an $i$ such that $2^i$ divides $N-1$ and $1 <
+(b^{(N-1)/2^i} - 1, N) < N$.
+\end{enumerate}
+
+\begin{proposition}[Solovay and Strassen] \label{PrimeWitness:Prop}
+If $N$ is composite then at least $3/4$
+of the elements of $\Z/n\Z$ are witnesses to the compositeness of $N$.
+\end{proposition}
+
+\begin{proof}
+\end{proof}
+
+This gives a very efficient technique for proving an integer is
+composite.  It also allows us to gain confidence in our suspicion that
+an integer $N$ is prime.  If in one hundred trials we are unable to find
+a witness to the compositeness of $N$ we can conclude, with a confidence
+of $1 - 2^{-200}$ that $N$ is prime.  This does not prove that $N$ is
+prime, nor will increasing the number of candidates.  Only examining all
+$N-1$ positive integers less than $N$ reduces the uncertainty to $0$.  
+
+\section{Goldwasser-Kilian Primality Test}
+
+The fundamental problem with $N-1$ primality test is the difficulty of
+factoring $N-1$---the order of the group of units modulo $N$.
+Replacing the group of units modulo $N$ by the group of points on an
+elliptic curve places us in a situation where the order of the group
+ranges between $N+1 -2\sqrt{N}$ and $N+1+2\sqrt{N}$.  It is likely
+that some number in this range is easy to factor.
+
+{\Goldwasser} and {\Kilian} \cite{Goldwasser:Killian} generalized the
+standard technique for proving an integer prime by using the group of
+points on an elliptic curve.  They proceeded in a recursive fashion,
+roughly as follows, 
+\begin{itemize}
+\item Choose an elliptic curve $E$ such that the number of points in
+$E(\F_N)$ is $2q$, and where $q$ appears to be a prime using a
+probabilistic primality test.
+\item Choose an element  $P \in E$ such that $qP = 0$, \ie $P$ has
+order $q$.
+\item Recursively prove that $q$ is a prime.
+\end{itemize}
+
+
+\section{Wagstaff's Results}
+
+\section{Adleman-Rumeley Approach}

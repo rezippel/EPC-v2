@@ -1,0 +1,1360 @@
+% $Id: polyarith.tex,v 1.1 1992/05/10 19:43:45 rz Exp rz $
+\chapter{Polynomial Arithmetic}
+\label{Poly:Arith:Chap}
+
+The core of most major algebraic manipulation systems is a polynomial
+arithmetic package.  There are a number of good reasons for this.
+First, a large number of problems in pure and applied mathematics can
+be expressed as problems solely involving polynomials.  Second,
+polynomials provide a natural foundation on which to build more
+complex structures like rational functions, algebraic functions, power
+series and rings of transcendental functions.  And third, the
+algorithms for polynomial arithmetic are well understood and
+relatively easy to implement.
+
+This chapter discusses some of the classical arithmetic algorithms for
+polynomials and analyzes their behavior.
+\sectref{Poly:Generalities:Sec} defines the basic notation and 
+terminology used to discuss algorithms for polynomials.
+Multiplication of polynomials is discussed in some detail in
+\sectref{Poly:Mult:Sec}.  As we shall see, arithmetic operations with
+symbolic expressions behave differently than arithmetic operations
+with floating point numbers, largely because the product of two
+``sparse'' polynomials is much larger than either of the original
+polynomials.  A precise definition of sparsity and some of the
+quantitative issues surrounding sparsity in polynomial arithmetic are
+dealt with in \sectref{Poly:Density:Sec}.  Some asymptotically fast
+algorithms for polynomial multiplication are discussed in
+\sectref{Poly:Fast:Sec}, and exponentiation is dealt with in
+\sectref{Poly:Expt:Sec}.  Finally, the problem of replacing variables
+of a polynomial by values discussed in \sectref{Poly:Subs:Sec}.
+
+\section{Generalities}
+\label{Poly:Generalities:Sec}
+
+Assume $R$ is a ring and $a_{0}, \ldots, a_{d}$ are elements of $R$.
+The polynomial
+\[
+P(X) = a_{0}X^{d}+ a_{1}X^{d-1} + \cdots + a_{d}
+\]
+is a {\em univariate} polynomial in $X$.\index{polynomial! univariate} The
+$a_{i}$ are the {\em coefficients} of $P(X)$ and the expressions $a_{i}
+X^{i}$ are the {\em monomials} or {\em terms} of $P(X)$.\index{polynomial!
+monomials}\index{polynomial! terms} $R$ is called the {\em coefficient
+domain} of $P(X)$.\index{coefficient domain! of a polynomial} The set of
+all polynomials in $X$ with coefficients in $R$ is denoted by $R[X]$.
+$R[X]$ is a ring. If, as is usually the case, $R$ is a commutative
+ring with unit, then so is $R[X]$.
+
+If $a_{0}$ is non-zero then the {\em degree} of $P(X)$ is $d = \deg
+P(X)$.\index{polynomial! degree}\index{degree! polynomial} The {\em leading coefficient} of
+$P(X)$ is denoted by $\lc (P(X)) = a_{0}$.\index{polynomial! leading
+coefficient} If the leading coefficient of $P(X)$ is $1$ then $P(X)$
+is said to be {\em monic}.\index{polynomial! monic} The {\em leading
+term} of $P(X)$ is $\lc(P) \cdot X^{\deg P}$.\index{polynomial!
+leading term}
+
+These terms can be extended to multivariate polynomials by considering
+them to be univariate polynomials in one variable, with coefficients
+that are polynomials in the remaining variables.\index{polynomial!
+multivariate} We denote these values by $\deg_{X_{i}} P$ and
+$\lc_{X_{i}} P$.
+
+Let $P$ be a multivariate polynomial in the variables $X_{1}, \ldots,
+X_{n}$ with coefficients in $R$
+\[
+P(X_{1}, \ldots, X_{n}) = 
+a_{t} X_{1}^{e_{1t}} X_{2}^{e_{2t}} \cdots X_{n}^{e_{nt}}
++
+\cdots
++
+a_{0} X_{1}^{e_{10}} X_{2}^{e_{20}} \cdots X_{n}^{e_{n0}}.
+\]
+$P(X_{1}, \ldots, X_{n})$ is an element of the ring $R[X_{1}, \ldots,
+X_{n}]$.  The monomials of $P$ are the expressions $a_{i}
+X_{1}^{e_{1i}} X_{2}^{e_{2i}} \cdots X_{n}^{e_{ni}}$.  The total
+degree of such a monomial is $e_{1i} + \cdots + e_{ni}$.  The {\em
+total degree} of $P$ is the maximum of the total degrees of its
+monomials.\index{degree! of a polynomial, total}
+
+To minimize the number of subscripts in formulae involving
+multivariate polynomials, we often use a ``vectorized subscript''
+notation.  Let $\vec X = (X_1, X_2, \ldots, X_n)$ and $\vec e = (e_1,
+e_2, \ldots, e_n)$ be two vectors.  Then we write the usual (inner)
+dot product as
+\[
+\vec e \cdot \vec X = e_1 X_1 + e_2 X_2 + \cdots + e_n X_n.
+\]
+We also extend this notation to exponentiation as follows 
+\[
+X^{\vec e} = (X^{e_1}, X^{e_2},\ldots, X^{e_n})
+\qquad\hbox{and}\qquad 
+{\vec X}^{\vec e} = X_1^{e_1} X_2^{e_2} \cdots X_n^{e_n}.
+\]
+Thus the multivariate polynomial
+\[
+a_1 X_1^{e_{11}} X_2^{e_{12}} \cdots X_n^{e_{1n}}+ a_2 X_1^{e_{21}} X_2^{e_{22}} \cdots X_n^{e_{2n}} + 
+\cdots + a_t X_1^{e_{t1}} X_2^{e_{t2}} \cdots X_n^{e_{tn}}
+\]
+would be written
+\[
+a_1 \vec X^{\vec e_1} + a_2 \vec X^{\vec e_2} 
+  + \cdots + a_t \vec X^{\vec e_t}.
+\]
+In addition, we write $P(\vec X) \in A[\vec X]$.  We always use the
+vector accent when using this notation.
+
+
+
+Multivariate polynomials can be represented a wide variety of different
+manners, each appropriate for different classes of problems.  In this
+chapter, we will discuss three different decision points.  The first
+decision is whether the polynomial uses an expanded representation or a
+recursive representation.  This is illustrated by the two polynomials: 
+\[
+\begin{eqalign}
+P_{1} &= x^{2} y^{3} + x^{2} z + yz^{3} + yz^{2} +z \\
+P_{2} & = x^{2}(y^{3} + z) + y(z^{3} + z^{2}) + z
+\end{eqalign}
+\]
+$P_{1}$ is presented using an {\em expanded} representation and can be
+viewed as an element of $\Z[x,y,z]$.  Expanded representations of
+polynomials can be viewed as a set of exponent vector/coefficient
+pairs, where each exponent vector has a component for each variable.
+This representation is used when we want to treat the variables
+equally, without giving preference to any particular one.
+\index{representation! expanded} \index{representation! recursive}
+
+$P_{2}$ uses a {\em recursive} representation.  It can be viewed as a
+univariate polynomial in $x$ whose coefficients are themselves polynomials.
+Thus it can be viewed as an element of $((\Z[z])[y])[x]$, where we have
+added the parentheses for precision.
+
+\index{representation! variable dense}
+The second decision point is whether or not the zeroth power of
+variables is indicated in the representation.  If the zeroth, and thus
+all powers of each variable, is indicated we call the representation
+{\em variable dense\/}.  Otherwise, the representation is called {\em
+variable sparse\/}.  $P_{3}$ and $P_{4}$ below are variable dense
+versions of $P_{1}$ and $P_{2}$ respectively.  We call $P_{1}$ and
+$P_{2}$ {\em variable sparse} representations.
+\[
+\begin{eqalign}
+P_{3} &= x^{2} y^{3}z^{0} + x^{2} y^{0} z + x^{0} y z^{3} + x^{0} y
+z^{2} +x^{0} y^{0} z \\
+P_{4} & = ((z^{0}) y^{3} + z y^{0}) x^{2} 
+    + ((z^{3} + z^{2}) y + z y^{0}) x^{0}
+\end{eqalign}
+\]
+Variable sparse representations are most often used when there are a large
+number of variables in the computation and/or the number of variables can
+change during the computation itself.  The advantage of being variable
+dense is that there is no longer any need to included code to decide
+whether the variables of a polynomials match up in an algorithm.  Variable
+sparse representations are not often used in conjunction with an expanded
+representation because of the cost of introducing variable identifiers into
+the exponent vectors.  Recursive, variable sparse representations
+have the problem that one does not know, {\em a priori\/}, the
+domain of each of the coefficients.  An indicator must be present at
+run time and a check must be introduced in to the code.
+
+The final decision point is whether to use a {\em degree dense}
+representation or not.\index{polynomial! degree dense representation} In a
+degree dense representation, monomials are included even if their
+coefficients are zero.  Thus $P_{4}$ would look like
+\[
+\displaylines{
+  \quad x^{2}  (y^{3} + 0 \cdot y^{2} + 0 \cdot y^{1} + z y^{0}) 
+      + 0 \cdot x^{1} \hfill\cr
+  \hfill{}+ \left((z^{3} + z^{2} + 0 \cdot z^{1} + 0 \cdot z^{0}) y
+    + (z^{1} + 0 \cdot z^{0}) y^{0}\right) x^{0}\quad\cr}
+\]
+in a degree dense representation.  Because there is a coefficient for
+every exponent in a degree dense representation, the exponents need
+not be stored in the polynomial.  Instead the coefficients can be
+arranged in a vector.  This gives the degree dense representation two
+potential advantages over the degree sparse representation.  First,
+when most of the coefficients are non-zero, the degree sparse
+representation can require substantially less storage than the degree
+dense representation.  Second, it may require many exponent
+comparisons to access (or modify) a particular coefficient in the
+degree sparse representation, while the degree dense representation
+can access the desired coefficient by an indexing operation.  
+
+However, the drawback to degree dense representations is the huge
+amount of storage required when the polynomials being represented are
+sparse, which is often the case for large multivariate problems.
+Consequently, degree dense representations are rarely used for general
+multivariate problems.  However, they are often appropriate in
+univariate problems where the efficiencies inherent in using vectors
+of coefficients to represent a polynomial outweigh the cost in space
+of the representation.
+
+By way of example, \Macsyma's primary fast polynomial representation
+is recursive, variable sparse and degree sparse.  The use of a
+variable and degree sparse representation ensures that large storage
+costs will not be incurred when polynomials with large numbers of
+variables or of large degree are used.  In addition a special degree
+dense representation is used for certain univariate polynomial
+operations.  For Gr\"obner basis calculations (see
+\chapref{Grobner:Chap}), an expanded, variable dense, degree sparse
+representation is often used.
+
+\index{variable! main} \index{variable! ordering}
+We called the outermost variable of a recursive representation of a
+polynomial its {\em main variable\/}.  The sequence of main variables
+in a polynomial (descending into the coefficient domains), is called
+the {\em variable ordering\/}.  The degree of $P$ with respect to the
+variable $X_{i}$ is the degree of $P$ when viewed as an element of
+$R[X_1, \ldots,X_{i-1}, X_{i+1}, X_n][X_i]$, which we denote by
+$\deg_{X_{i}} P$.
+
+\index{polynomials! sparse}\index{polynomials! dense} 
+Let $P(X_{1}, \ldots, X_{m})$ be a polynomial of degree $d_{i}$ in
+$X_{i}$.  Such a polynomial has $D = \prod_{i} (1 + d_{i})$
+coefficients.  If nearly all of them are non-zero then the polynomial
+is said to be a {\em dense polynomial\/}.  If nearly all of the
+coefficients are zero then $P$ is a {\em sparse polynomial\/}.  These
+terms are not precise but are meant to characterize a qualitative
+difference in the behavior of algorithms using polynomials of these
+two different types.  This is discussed in more detail in
+\sectref{Poly:Density:Sec}.
+
+\section{Polynomial Addition}
+\label{Poly:Add:Sec}
+\newcommand{\cons}{\mathop{\rm cons}\nolimits}
+\newcommand{\first}{\mathop{\rm first}\nolimits}
+\newcommand{\rest}{\mathop{\rm rest}\nolimits}
+\newcommand{\emptyp}{\mathop{\rm empty?}\nolimits}
+\newcommand{\coefp}{\mathop{\rm coef?}\nolimits}
+%\newcommand{\terms}{\mathop{\rm terms}\nolimits}
+\newcommand{\var}{\mathop{\rm var}\nolimits}
+
+
+The basic algorithms for polynomial arithmetic are relatively simple;
+however the details that arise when using different data structures
+can become quite involved.  This section describes the implementation
+of polynomial addition in some detail, but in later sections we will
+	be increasingly more abstract and leave more of the details to the
+reader.
+
+Through this section we will use a recursive, variable sparse, degree
+sparse representation for polynomials.  Consider the univariate polynomial
+\[
+f(x) = x^7 + 3x^5 - 13x^2 +3
+\]
+We will represent terms of this polynomial as a list of
+exponent/coefficient pairs, headed by the variable, \ie,
+\[
+f(x) \approx \mbox{\tt ($x$ (7 1) (5 3) (2 -13) (3 0))} = \mbox{\tt F}.
+\]
+Notice that the term list is sorted by the exponents of each term.
+The routines $\var$ and $\terms$ are used to separate the variable of
+the polynomial from the term list.  So,
+\[
+\begin{eqalign}
+\var(\mbox{\tt F})& \Rightarrow x, \\
+\terms(\mbox{\tt F}) & \rightarrow \mbox{\tt ((7 1) (5 3) (2 -13) (3 0))}.
+\end{eqalign}
+\]
+
+We use the routines $\first$ and $\rest$ to take apart lists, \viz,
+\[
+\begin{eqalign}
+\first(\terms(\mbox{\tt F}))& \Rightarrow \mbox{\tt (7 1)},\\
+\first(\rest(\terms(\mbox{\tt F})))& \Rightarrow \mbox{\tt (5 3)}, \\
+\end{eqalign}
+\]
+We use the predicate $\emptyp$ to determine if a list is empty, \ie,
+contains no elements. 
+
+To construct lists, we use the operators {\tt ( , )} and {\tt ( @ )}.
+The comma operator is used to create a list, while the {\tt @} is used
+add elements to the front of a list.  This is best illustrated by
+examples.
+\[
+\begin{eqalign}
+\mbox{\tt ($1$, ($2$, $3$), $4$, ($5$, $6$)} 
+   & \Rightarrow \mbox{\tt (1 (2 3) 4 (5 6))},\\
+\mbox{\tt ($1$ @ (($2$, $3$), $4$, ($5$, $6$))} 
+   & \Rightarrow \mbox{\tt (1 (2 3) 4 (5 6))},\\
+\mbox{\tt ($1$,  ($2$, $3$), $4$ @ ($5$, $6$))} 
+   & \Rightarrow \mbox{\tt (1 (2 3) 4 5 6)},\\
+\mbox{\tt ($1$ @  ($2$, $3$), $4$, ($5$, $6$))} 
+   & \Rightarrow \mbox{\tt (1 2 3 4 (5 6))},\\
+\mbox{\tt ($1$ @  ($2$, $3$), $4$ @ ($5$, $6$))} 
+   & \Rightarrow \mbox{\tt (1 2 3 4 5 6)}.
+\end{eqalign}
+\]
+
+We call $\rest(\mbox{\tt F})$ the {\em term list}\index{polynomial! term
+list}.  It is the list of exponent/coefficient pairs minus the
+identifying variable.  The term list is the most commonly used
+structure when implementing polynomial algorithms on recursively
+represented polynomials.  To manipulate term lists, we use the
+functions, $\lt$ to get the leading term, $\lc$ the leading
+coefficient and $\lexp$ the leading exponent.
+\[
+\begin{eqalign}
+\lt(\terms(\mbox{\tt F}))& \Rightarrow \mbox{\tt (7 1)}, \\
+\lexp(\terms(\mbox{\tt F}))& \Rightarrow \mbox{\tt 7}, \\
+\lc(\terms(\mbox{\tt F}))& \Rightarrow \mbox{\tt 1}.
+\end{eqalign}
+\]
+
+With these basic tools, we can implement the classical polynomial
+addition algorithm for term lists:
+\label{TermsPlus:Def}	
+\begindsacode
+ 1 \=Ter\=msPlus (Fterms, Gterms) := $\{$ \\
+ 2\>\>if $\emptyp(\mbox{Fterms})$ then Gterms; \\
+ 3\>\>elif $\emptyp(\mbox{Gterms})$ then Fterms; \\
+ 4\>\>elif \=$\lexp(\mbox{Fterms}) > \lexp(\mbox{Gterms})$\\
+ 5\>\>\>then ($\lt(\mbox{Fterms})$ @ $\mbox{TermsPlus}(\rest(\mbox{Fterms}), \mbox{Gterms})$);\\
+ 6\>\>elif \=$\lexp(\mbox{Fterms}) < \lexp(\mbox{Gterms})$\\
+ 7\>\>\>then ($\lt(\mbox{Gterms})$ @ $\mbox{TermsPlus}(\mbox{Fterms}, \rest(\mbox{Gterms}))$);\\
+ 8\>\>else $\{$ \=$\mbox{tempc} \leftarrow
+\mbox{PolyPlus}(\lc(\mbox{Fterms}), \lc(\mbox{Gterms}))$;\\
+ 9\>\>\>if $\mbox{tempc} = 0$ then $\mbox{TermsPlus}(\rest(\mbox{Fterms}), \rest(\mbox{Gterms}))$;\\
+10\>\>\>else (\=($\lexp(\mbox{Fterms})$, $\mbox{tempc}$)\\
+11\>\>\>\> @ $\mbox{TermsPlus}(\rest(\mbox{Fterms}), \rest(\mbox{Gterms}))$);\\
+12\>\>\>$\}$\\
+13\>\> $\}$
+\enddsacode
+
+For simplicity, and to avoid introducing new control structures, we
+have implemented this routine using recursion.  Lines {\tt 2} and {\tt
+3}, are base cases used when we run out of terms in either {\tt
+Fterms} or {\tt Gterms}.  If the degree of the leading term of {\tt
+Fterms} is greater than that of {\tt Gterms} (line {\tt 4}) or vice
+versa (line {\tt 6}) then a term is added without any further
+computation.  If the degree of the leading terms of {\tt Fterms} and
+{\tt Gterms} are the same, then the leading coefficients are added
+(line {\tt 9}), and, if non-zero, the sum added to the answer.
+
+Notice that on line {\tt 8} we added the leading coefficients of {\tt
+Fterms} and {\tt Gterms} using {\tt PolyPlus}, which is defined in the
+next paragraph.  This is necessary because we have used a recursive
+representation, and thus the polynomial's coefficients may themselves
+be polynomials.
+
+To implement a multivariate polynomial algorithm, we must account for
+the different variables.  The routine {\tt PolyPlus} is entry
+point for general polynomial addition.  If its arguments have the same
+main variable then {\tt TermsPlus} is used to do the addition.
+Otherwise, the polynomial with the lesser main variable is interpreted
+as a polynomial with only a constant term in the greater main
+variable.  That is if $x$ is more main than $y$ and we wish to add
+$x+1$ and $y$, we instead add $x+1$ and $x^0 y$.  This is done in the
+following routine.  Notice, that we also need to worry about
+constants, \ie, expressions free of any variables. 
+
+\begindsacode
+Pol\=yPlus (F, G) := $\{$ \\
+\>if $\coefp(\mbox{F})$ then \=if $\coefp(\mbox{G})$ then $\mbox{F}+\mbox{G}$; \\
+\>\>else $\mbox{PolySimp}(\var(\mbox{G}), \mbox{TermsPlus}(\mbox{((0, F))}, \terms(\mbox{G})))$; \\
+\>eli\=f $\coefp(\mbox{G})$\\
+\>\> then $\mbox{PolySimp}(\var(\mbox{F}), \mbox{TermsPlus}(\mbox{((0, G))}, \terms(\mbox{F})))$; \\
+\>elif $\var(\mbox{F}) > \var(\mbox{G})$ \\
+\>\>then $\mbox{PolySimp}(\var(\mbox{F}), \mbox{TermsPlus}(\mbox{((0, G))}, \terms(\mbox{F})))$; \\
+\>elif $\var(\mbox{F}) < \var(\mbox{G})$ \\
+\>\>then $\mbox{PolySimp}(\var(\mbox{G}), \mbox{TermsPlus}(\mbox{((0, \mbox{F}))}, \terms(\mbox{G})))$; \\
+\>else $\mbox{PolySimp}(\var(\mbox{F}), \mbox{TermsPlus}(\terms(\mbox{F}), \terms(\mbox{G})))$;\\
+\>$\}$
+\enddsacode
+
+In {\tt PolyPlus} the function {\tt PolySimp} is used to create
+polynomials from term lists and a variable.  This is done instead of
+just using a constructor since the terms list could consists of only a
+constant term, and thus the variable needs to be elided to maintain
+the variable sparse representation.  The definition of {\tt PolySimp}
+is as follows
+
+\begindsacode
+Pol\=ySimp (var, terms) := $\{$\\
+\>if $\emptyp(\mbox{terms})$ then $0$ \\
+\>elif $0 = \lexp(\mbox{terms})$ then $\lc(\mbox{terms})$\\
+\>else (var @ terms)\\
+\> $\}$
+\enddsacode
+
+The basic idea behind polynomial addition, is quite simple.  However,
+it was necessary to introduce a bit of complexity in order to maintain
+all the details of a recursive, variable sparse, variable dense
+representation.  This complexity often makes some of the highly efficient
+algorithms discussed in later sections less attractive for this
+representation.  Nonetheless, the flexibility provided by the variable
+sparse, degree sparse representation makes it an ideal representation
+for most applications.
+
+Also notice that we have not paid much attention to the coefficient
+domain.  In particular, notice that we have assumed that the
+coefficient domain has characteristic zero.  In a modern system like
+{\Axiom} \cite{Jenks92} or {\Weyl} \cite{Weyl:Ref} the coefficient
+domain could be more general, and could itself be a polynomial ring.
+This generality is extremely valuable when implementing the algorithms
+that are most conveniently expressed using relatively sophisticated
+mathematics.  This additional power requires more sophisticated
+programming techniques that beyond the scope of this book.
+
+This implementation of this polynomial representation, has used a
+recursion extensively, both over the variables in {\tt PolyPlus} and
+over the terms in {\tt TermsPlus}.  In a practical implementation an
+iterative (or tail recursive) structure would be used over the term
+since the number of terms in a polynomial could be so large.  The
+recursion over the variables, however, appears is quite convenient and
+effective.  
+
+\section{Polynomial Multiplication}
+\label{Poly:Mult:Sec}
+
+For polynomial multiplication we start with the basic high school
+algorithm.  Let $F$ and $G$ be two polynomials, 
+\[
+\begin{eqalign}
+F(x) &= a_{0} x^{m} + \cdots + a_{m}, \\
+G(x) &= b_{0} x^{n} + \cdots + b_{n}.
+\end{eqalign}
+\]
+Their product $H(x) = F(x) G(x)$ has coefficients
+\[
+\mbox{coef}(H, x^{m+n-\ell}) \leftarrow a_{\ell} b_{0} + a_{\ell-1} b_{1} + \cdots
+ a_{1} b_{\ell-1} + a_{0} b_{\ell}.
+\]
+
+The following program creates $H$ by precisely following this prescription.
+\begindsacode
+Pol\=yTimes1($F(x), G(x)$) := $\{$\\
+\> $H \leftarrow 0$; \\
+\> for\=each $a_{i}x^{e_{i}}$ in $F(x)$ \\
+\> \> for\=each $b_{j} x^{f_{j}}$ in $G(x)$ \\
+\> \> \> $\mbox{coef}(H, x^{e_{i}+f_{j}}) \leftarrow
+    \mbox{coef}(H, x^{e_{i}+f_{j}}) + a_{i} b_{j}$; \\
+\> $H$ \\
+\> $\}$
+\enddsacode
+\label{PolyTimes1:Alg}
+\noindent
+This algorithm assumes that polynomials are represented as sets of
+terms, where each terms is a coefficient/exponent pair.  The {\tt
+foreach} forms are used to loop over the coefficient/exponent pairs
+used of each polynomial.  The assignment statement is used to update a
+coefficient pair with a new value.  This assignment should remove the
+term if the resulting coefficient is zero and should not do any
+assignment if $a_{i} b_{j}$ is zero.
+
+If $F(x)$ and $G(x)$ have $r$ and $s$ non-zero terms respectively then
+the routine {\tt PolyTimes1} will require $rs$ multiplications.  If
+the terms are organized as vectors of coefficients indexed by
+exponents, then the assignment statement could be done in unit time.
+However, this is only practical when the polynomials are known to be
+relatively dense.  When sparse data structures are used, the cost of
+modifying terms in $H$ may dominate.
+
+To make these issues a bit clearer, we consider an explicit
+implementation of univariate polynomial multiplication building on the
+ideas used to implement polynomial addition in the previous section.
+We use the same data structures and operators as before. 
+
+As with polynomial addition, we start with routines for dealing with
+term lists.  The base routine for multiplication is a bit more complex
+than {\tt TermsPlus}.  Its best to start with {\tt TermsMonTimes},
+which multiplies a terms list by a monomial and adds it to (merges it
+with) another terms list.
+
+\begindsacode
+Ter\=msMonTimes (terms, e, c, sum) := $\{$ \\
+\>if \=$\lexp(\mbox{terms}) + \mbox{e} > \lexp(\mbox{sum})$ \\
+\>\>then (\=($\lexp(\mbox{terms}) + \mbox{e}$, $\lc(\mbox{terms})\cdot\mbox{c}$)\\
+\>\>\>@ $\mbox{TermsMonTimes}(\rest(\mbox{terms}), \mbox{e}, \mbox{c}, \mbox{sum})$;\\
+\>elif $\lexp(\mbox{terms}) + \mbox{e} = \lexp(\mbox{sum})$ \\
+\>\>then $\{$ \=$\mbox{tempc} \leftarrow
+\mbox{PolyPlus}(\mbox{PolyTimes}(\lc(\mbox{terms}), \mbox{c}), \lc(\mbox{sum}))$; \\
+\>\>\>if \=$\mbox{tempc} = 0$ \\
+\>\>\>\>then $\mbox{TermsMonTimes}(\rest(\mbox{terms}), \mbox{e}, \mbox{c}, \rest(\mbox{sum}))$;\\
+\>\>\>else (\=($\lexp(\mbox{sum})$, tempc) \\
+\>\>\>\>@ $\mbox{TermsMonTimes}(\rest(\mbox{terms}), \mbox{e}, \mbox{c}, \rest(\mbox{sum}))$);\\
+\>\>\>$\}$\\
+\>else (\=($\lexp(\mbox{sum})$, $\lc(\mbox{sum})$)\\
+\>\>@ $\mbox{TermsMonTimes}(\mbox{terms}, \mbox{e}, \mbox{c}, \rest(\mbox{sum}))$);\\
+\>$\}$
+\enddsacode
+
+\noindent
+Notice that this version of {\tt TermsMonTimes} assumes that the
+coefficient field has characteristic zero.  This routine corresponds
+to the inner loop in {\tt PolyTimes1}.  It takes advantage of the fact
+that the terms in a terms list are sorted by exponents.
+
+With {\tt TermsMonTimes} it is easy to multiply terms lists.  The
+routine {\tt TermsTimes} multiplies {\tt Gterms} by each each term in
+{\tt Fterms}, accumulating the result.  It corresponds to the outer
+loop in {\tt PolyTimes1}. 
+multiplies 
+\begindsacode
+Ter\=msTimes (Fterms, Gterms) := $\{$ \\
+\>if $\emptyp(\mbox{Fterms})$ then (); \\
+\>else TermsMonTimes$($\=$\mbox{Gterms}, \lexp(\mbox{Fterms}), \lc(\mbox{Fterms}),$\\
+\>\>$\mbox{TermsTimes}(\rest(\mbox{Fterms}), \mbox{Gterms}))$;\\
+\> $\}$
+\enddsacode
+
+With the {\tt TermsTimes} and {\tt TermsMonTimes} we can construct the
+routine that multiplies real polynomials. It has much the same
+structure as {\tt PolyPlus}, making sure that the polynomials have the
+same main variable before calling {\tt TermsTimes} and using {\tt
+TermsMonTimes} when they do not.
+\begindsacode
+Pol\=yTimes2 (F, G) := $\{$ \\
+\>if $\coefp(\mbox{F})$ then \=if $\coefp(\mbox{G})$ then $\mbox{F}\times\mbox{G}$; \\
+\>\>else ($\var(\mbox{G})$, $\mbox{TermsMonTimes}(\terms(\mbox{G}), 0, \mbox{F}, ())$); \\
+\>eli\=f $\coefp(\mbox{G}) \vee \var(\mbox{F}) > \var(\mbox{G})$\\
+\>\> then ($\var(\mbox{F})$, $\mbox{TermsMonTimes}(\terms(\mbox{F}), 0, \mbox{G}, ())$);\\
+\>elif $\var(\mbox{F}) < \var(\mbox{G})$ \\
+\>\>then ($\var(\mbox{G})$, $\mbox{TermsMonTimes}(\terms(\mbox{G}), 0, \mbox{F}, ())$);\\
+\>else $\{$ \=$\mbox{terms} \leftarrow \mbox{()}$;\\
+\>\>loop \=for $(e c) \in \terms(\mbox{F})$\\
+\>\>\>$\mbox{terms} \leftarrow \mbox{TermsMonTimes}(\terms(\mbox{G}),
+      e, c, \mbox{terms})$;\\
+\>\> ($\var(\mbox{F})$ @ terms);\\
+\>\>$\}$\\
+\>$\}$
+\enddsacode
+These routines provide are an effective implementation of polynomial
+multiplication, except for the fact that recursion was used over
+degrees in {\tt TermsMonTimes} when an iteration or tail recursion
+would be preferable.  Except for this issue, {\tt PolyTimes2} is
+essentially identical with the polynomial multiplication routines used
+in \Macsyma{} and \Axiom.
+
+
+We now return to the question of the number of exponent comparisons
+involved in polynomial multiplication.  Consider the two extreme
+cases, multiplying two totally sparse polynomials and multiplying two
+dense polynomials, all of which consist of $t$ non-zero terms. In the
+dense case, we are multiplying two polynomials of the form
+\[
+\begin{eqalign}
+F_{\rm dense}(x) &= a_{0} x^{t} + \cdots + a_{t}, \\
+G_{\rm dense}(x) &= b_{0} x^{t} + \cdots + b_{t},
+\end{eqalign}
+\]
+where all of the $a_i$ and $b_j$ are non-zero.  At the end of the
+$i$\th{} pass through the outer loop of {\tt PolyTimes1}, \ie, the
+$i$\th{} recursion in {\tt TermsTimes}, $H$ will have $t+i-1$ terms.
+During the $i+1$\th{} invocation of {\tt TermsMonTimes} by {\tt
+TermsTimes} about $t+i-1$ exponent comparisons will be required since
+{\tt sum} will have $t+i-1$ terms.  Thus the total number of exponent
+comparisons, will be approximately
+\[
+\sum_{i=2}^{t} t + i - 1 = t^2 + \frac{t(t-1)}{2} = O(t^2).
+\]
+This is the same order of magnitude as the number of exponent
+comparisons.  
+
+However, for the sparse case, at the end of the $i$\th{} loop, $H$ may
+have as many as $i\cdot t$ non-zero terms.  This is the definition of
+being ``totally sparse.''\index{polynomial! totally sparse} Thus the
+total number of comparisons can be as large as
+\[
+\sum_{i=1}^{t} i\cdot t = \frac{t^2\,(t+1)}{2} = O(t^3).
+\]
+For sufficiently large and sparse problems, the exponent comparisons
+dominate the cost of the high school algorithm, not the coefficient
+operations.  In practice, the cost of an exponent comparison is
+usually much less than that of a coefficient operation, so this growth
+rate is generally masked.
+
+We can reduce the cost of the exponent comparisons to $O(s^{2} \log
+s)$ by representing the term sets as heaps
+\cite{Aho:Hopcroft:Ullman74}, as was done in \Altran{}
+\cite{Brown:ALTRAN}, or some other tree structure.  In this case the
+cost of an insertion in a term set of $k$ terms will average $O(\log
+k)$. Thus the cost of $s^{2}$ insertions will be
+\[
+\sum_{k=1}^{s^{2}} \log k = O(\log (s^{2}!)) = O(s^{2} \log s),
+\]
+where we have used Stirling's formula \eqnref{Stirling:Eqc} in the
+last step.
+
+Despite the theoretical benefits from this approach, heap structures
+are not often used in actual computer algebra systems.  This is
+largely because typical problems do not involve very large expressions
+and thus the asymptotic behavior of algorithms is less important than
+their simplicity.  Nonetheless, for certain very large problems, heap
+structures have proven to be beneficial \cite{Y2n:Problem}.
+
+\Section{Density of Polynomials}
+\label{Poly:Density:Sec}
+
+When arithmetic operations are performed on floating point numbers,
+the size of the result is the same as the size of the inputs.  That
+is, if we start with two floating point numbers that can each be
+represented using $S$ bits, their sum and product is will require each
+require $S$ bits.  This is not true for integers, where the sum may
+require $S+1$ bits and the product $2S$.  For polynomials the
+situation is more complicated.  First, we need to deal with the growth
+in the size of the coefficients during arithmetic operations and
+second, we must count the increase in the number of non-zero terms in
+the result.  To first order, we can ignore the growth in the
+coefficient size, especially if the coefficients are integers or
+elements of finite fields, and concentrate on the change in the number
+of non-zero terms.
+
+A dense univariate polynomial of degree $d$ has $d+1$ terms.  Its
+square is a polynomial of degree $2d$ with $2d+1$ terms.  However,
+consider the multivariate polynomial
+\[
+P(X) = X_{0} + X_{1} + \cdots + X_{d},
+\]
+which also has $d+1$ terms.  Its square has $(d+1)(d+2)/2$ terms, which is
+significantly more than the $2d+1$ of the dense case.  Thus computations
+with sparse polynomials tend to grow faster than those with dense
+polynomials.  The following table compares this behavior with floating
+point numbers and integers for both addition and multiplication.
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} 
+   \multicolumn{1}{c}{}
+ & \multicolumn{1}{c}{Floating Point}
+ & \multicolumn{1}{c}{Integers}
+ & \multicolumn{1}{c}{Dense Poly}
+ & \multicolumn{1}{c}{Sparse Poly} \\ \hline
+$+$ & $S$ & $S+1$ & $S$ & $2S$ \\ \hline
+$\times$ & $S$ & $2S$ & $2S$ & $S^{2}$ \\ \hline
+\end{tabular}
+\end{center}
+
+In the next section we quantify what happens when multiplying multivariate
+polynomials that are in between the two extremes of being completely sparse
+and totally dense.
+
+\index{polynomial! density of} 
+We define a polynomial's {\em density\/}, \ie\ the ratio of the number
+of non-zero terms to the maximum number of possible terms, to quantify
+its sparsity.  The density of a univariate polynomial $P(X)$ of degree
+$d$ is
+\[
+\dens P = \frac{t}{d+1},
+\]
+where $t$ is the number of non-zero monomials in $P(X)$.  In general,
+the product of two univariate polynomials with density $1$ is also a
+polynomial of density $1$.  (The standard example of two dense
+polynomials whose product is sparse is $1-x$ and $1+ x+ \cdots +
+x^{d}$.)  The product of two polynomials of low density has somewhat
+larger density.  For instance, assume $P$ and $Q$ both have $t \ll d$
+terms and degree $d$.  At most, their product will have $t^{2}$ terms
+and its degree will be $d$.  So,
+\[
+\dens (P \cdot Q) = \frac{t^{2}}{2d+1} \ge \frac{t}{d+1} = \dens P,
+\]
+if $t > 3$.  Thus as we multiply polynomials, they tend to get denser.
+This is also true of the sums of polynomials, again assuming there are
+no ``accidental cancellations.''  We state this as a proposition.
+
+\begin{proposition}
+\label{Dens:Ineq:Prop}
+For almost all pairs of univariate polynomials $P$ and $Q$
+\[
+\dens (P \cdot Q) \ge \max(\dens P, \dens Q)
+\]
+and
+\[
+\dens (P + Q) \ge \max(\dens P, \dens Q)
+\]
+\end{proposition}
+
+The inequality of \propref{Dens:Ineq:Prop} can be sharpened considerably.
+The approach we will take to formalize this is to determine expressions for
+the ``expected'' density of the product of two polynomials with a given
+density.
+
+Assume we wish to multiply two polynomials from a set ${\cal P}_{d} \in
+R[X]$ of univariate polynomials of degree less than or equal to $d$.
+Furthermore, averaged over the elements of ${\cal P}_{d}$ assume that the
+probability that the coefficient of $X^{i}$ is non-zero is $p_{i}$.  The
+expected value of the density of elements of ${\cal P}_{i}$ is
+\[
+\frac{p_{0} + p_{1} + \cdots p_{d}}{d+1}.
+\]
+\index{probability density! polynomial} 
+The $p_{i}$ form a {\em polynomial probability density} or PPD.  To
+sharpen up \propref{Dens:Ineq:Prop} we will determine the PPD of the
+product of two polynomials with given PPDs.
+
+
+To make the calculations a bit clearer, assume we have two sets of
+polynomials, ${\cal A}_{d}$ and ${\cal B}_{d}$, that consist of
+polynomials of degree less than or equal to $d$.  Furthermore, assume
+that the polynomial probability distributions for these sets are
+$\alpha_{i}$ and $\beta_{i}$ respectively.  We want to determine the
+PPD of the set
+\[
+{\cal C}_{2d} = {\cal A}_{d} \cdot {\cal B}_{d} = 
+  \set{P\cdot Q | P \in {\cal A}_{d}, Q \in {\cal B}_{d}},
+\]
+which we denote by $\gamma_{j}$.  Let 
+\[
+\begin{eqalign}
+P(X) &= a_{d} + a_{d-1} X + \cdots + a_{0} X^{d}, \\
+Q(X) &= b_{d} + b_{d-1} X + \cdots + b_{0} X^{d},
+\end{eqalign}
+\]
+where $P \in {\cal A}_{d}$ and $Q \in {\cal B}_{d}$, and $PQ \in {\cal
+C}_{2d}$.  The constant term of an element of
+${\cal C}_{2d}$ is zero if either of the two constant terms of its two
+multiplicands are non-zero, \ie\
+\[
+\begin{eqalign}
+1 - \gamma_{0} & = (1 - \alpha_{0}) + (1- \beta_{0})
+ - (1 - \alpha_{0})(1 - \beta_{0}), \\
+ & 1 - \alpha_{0} \beta_{0}.
+\end{eqalign}
+\]
+So $\gamma_{0} = \alpha_{0} \beta_{0}$.
+Higher order terms are little more complicated to compute.  Consider
+linear term of $PQ$.  It is zero if and only if $a_{0} b_{1}$ is zero and
+i$a_{1} b_{0}$ is zero.  That $a_{i}b_{j}$ is zero is $1 -
+\alpha_{i}\beta_{j}$, as computed above.  Thus
+\[
+1 - \gamma_{1} = (1 - \alpha_{0} \beta_{1}) (1 - \alpha_{1} \beta_{0}),
+\]
+assuming no cancellations.  More generally, we have
+\[
+1 - \gamma_{k} = \prod_{0\le i \le k} (1 - \alpha_{i}\beta_{k-i}).
+\]
+The expected value of the density of an element of ${\cal C}_{2d}$ is
+\[
+\frac{\gamma_{0} + \gamma_{1} + \cdots + \gamma_{2d}}{2d+1}.
+\]
+
+A simple approximation can be obtained by assuming that $\alpha_{i}$
+and $\beta_{i}$ are constant and both equal to $\mu$ for $0 \le i \le
+d$, and $0$ otherwise.  Thus, $\dens {\cal A}_{d} = \dens {\cal
+B}_{d}= \mu$.  For $k \le d$, we have
+\[
+\gamma_{k} = 1 - \prod_{0\le i \le k} (1 - \alpha_{i}\beta_{k-i}) = 
+1 - (1 - \mu^{2})^{k+1}
+\]
+For $k > d$, $\gamma_{k} = \gamma_{2d - k}$.  So the expected number
+of terms of an element of ${\cal C}_{2d}$ is
+\[
+\begin{eqalign}
+\gamma_{0} + \gamma_{1} + \cdots + \gamma_{2d} 
+ & = 2 (\gamma_{0} + \gamma_{1} + \cdots + \gamma_{d-1}) + \gamma_{d} \\
+ & = 2d  - 2 \left[(1 - \mu^{2}) + \cdots + (1 - \mu^{2})^{d}\right]
+    + 1 - (1 - \mu^{2})^{d+1} \\
+ & = 2 d + 1
+    - 2 (1 - \mu^{2}) \left[\frac{1 - (1 - \mu^{2})^{d}}{\mu^{2}}\right] 
+    - (1 - \mu^{2})^{d+1} \\
+ & = 2d + 1 + 2\left[1 - \frac{1}{\mu^{2}}\right]
+ - \left[1 - \frac{2}{\mu^{2}}\right](1 - \mu^{2})^{d+1}.
+\end{eqalign}
+\]
+The density of elements of ${\cal C}_{2d}$ is
+\[
+1 + \frac{2}{2d+1} \left[1 - \frac{1}{\mu^{2}}\right]
+ - \frac{1}{2d+1}\left[1 - \frac{2}{\mu^{2}}\right](1 - \mu^{2})^{d+1}.
+\]
+This is worth marking as a proposition.
+
+\begin{proposition}
+Let ${\cal A}_{d}$, ${\cal B}_{d}$ and ${\cal C}_{2d}$ be as above,
+and assume that $\dens {\cal A}_{d} = \dens {\cal B}_{d} = \mu$.  Then
+\begin{equation}\label{Density:Eq}
+\dens {\cal C}_{2d} =
+1 + \frac{2}{2d+1} \left[1 - \frac{1}{\mu^{2}}\right]
+ - \frac{1}{2d+1}\left[1 - \frac{2}{\mu^{2}}\right](1 - \mu^{2})^{d+1},
+\end{equation}
+which, for large values of $d$, is 
+\[
+\dens {\cal C}_{2d} = \frac{(d+1)^{2}}{2d+1} \mu^{2} - d (d+1) \mu^{4}
+\]
+Almost all elements of ${\cal C}_{2d}$ have 
+\begin{equation}\label{Terms:Eq}
+2d + 3  - \frac{2}{\mu^{2}}
+   - \left[1 - \frac{2}{\mu^{2}}\right](1 - \mu^{2})^{d+1}.
+\end{equation}
+non-zero terms.
+\end{proposition}
+
+Notice that when $\mu = 1$, that is the polynomials are completely
+dense, \eqnref{Terms:Eq} gives $2d+1$, which is the number of terms of
+a polynomial of degree $2d$.  For small $d$, the computation is a bit
+more complex.  Let $t$ the number of non-zero terms of a polynomial in
+${\cal A}_{d}$.  Then $\mu = t/(d+1)$.  Substituting this into
+\eqnref{Terms:Eq} we have
+\begin{equation}
+2d+3 - \frac{2(d+1)^{2}}{t^{2}}
+ - \left(1 - \frac{2(d+1)^{2}}{t^{2}} \right)
+   \left(1 - \frac{t^{2}}{(d+1)^{2}} \right)^{d+1},
+\label{Terms:Eqa}
+\end{equation}
+If we let $d \rightarrow \infty$ this expression tends towards $t^{2}$: 
+\[
+\begin{eqalign}
+2d+3 &- \frac{2(d+1)^{2}}{t^{2}}
+ - \left(1 - \frac{2(d+1)^{2}}{t^{2}} \right)
+   \left(1 - \frac{t^{2}}{(d+1)^{2}} \right)^{d+1},\\
+& = t^{2} - \frac{t^{2}}{d+1} + \frac{t^{4}}{2(d+1)^{2}} 
+   + O \left((d+1)^{-3}\right)
+\end{eqalign}
+\]
+
+\begin{figure}
+\begin{center}
+\epsfxsize=3truein\epsfbox{Pix/density.eps}
+\end{center}
+\caption{Density function for $d$ = 100 and 300\label{Poly:Mult:Density:Fig}}
+\end{figure}
+
+The behavior of the density of the product of two polynomials is
+illustrated in \figref{Poly:Mult:Density:Fig}, for polynomials of two
+different degrees.  For products of very sparse polynomials ($0 < \mu \ll
+1$), the density rises somewhat slowly although the number of terms
+increases quickly.  Moderately dense polynomials become completely dense
+very quickly.
+
+\medskip
+The results of the previous section can be extended to multivariate
+polynomials by mapping them into univariate polynomials by the following
+technique.  Assume that $P(X_1, \ldots, X_n)$ is multivariate polynomial
+with $t$ non-zero terms and that $\deg_{X_i} P = d_i$.  We want to
+transform it into a univariate polynomial $\hat P(Z)$ with same number of
+terms as $P$ and with the same coefficients.  Thus we want each term $\vec
+X^{\vec e}$ to map to a distinct term of $\hat P$.  This is achieved by
+using the mapping
+\[
+\vec e = (e_1, \ldots, e_n) \mapsto
+e_1 + (d_1+1) \left(e_2 + (d_2+1) \left(e_3 + \cdots 
+  + (d_{n-1} + 1) e_n\right)\right).
+\]
+Although this mapping keeps the terms of $P(\vec X)$ distinct, it does
+not do so for $P(\vec X)^2$.  For that we must use the mapping 
+Using the univariate definition of sparsity 
+\[
+\vec e \mapsto
+e_1 + (2d_1+1) \left(e_2 + (2d_2+1) \left(e_3 + \cdots 
+  + (2d_{n-1} + 1) e_n\right)\right).
+\]
+Thus we can define the density of $P$, for the problem of squaring $P$,
+to be
+\[
+\frac{t}{(2d_{1} + 1) \cdots (2d_{n} + 1)}.
+\]
+For a problem that involves $s$ multiplications we would have to define
+the density of $P$ to be no more than 
+\[
+\frac{t}{(2^s d_{1} + 1) \cdots (2^s d_{n} + 1)}.
+\]
+Though a detailed analysis could be performed, the results are clear.
+Multivariate polynomials tend to behave like very sparse univariate
+polynomials.
+
+\medskip
+Despite the fact that arithmetic operations with polynomials generally
+yield larger polynomials, there exist polynomials whose powers are smaller
+than the original polynomial.  The simplest such example was presented by
+{\Renyi} \cite{Renyi:Terms}.  The following polynomial is dense of
+degree $28$ and thus has $29$ non-zero terms. 
+\[
+\begin{eqalign}
+P=&\left(1+2x-2x^{2}+4x^{3}+4x^{4}\right) \times \\
+ & \quad \left(1+2x^{4}-2x^{8}+4x^{12}-10x^{16}+28x^{20}-84x^{24}\right)
+\end{eqalign}
+\]
+Nonetheless, its square has only $28$ non-zero terms.  In fact, R\'enyi
+proved the following proposition.  
+
+\begin{proposition}[R\'enyi] 
+Denote the minimal number of terms of the square of a polynomial with
+$n$ terms by $n q(n)$.  Then 
+\[
+\lim_{n\rightarrow\infty} \frac{q(1) + q(2) + \cdots + q(n)}{n} = 0.
+\]
+\end{proposition}
+
+{\Erdos} \cite{Erdos:Polynomial:Powers} has shown that for any
+constant $C < 2$, there exists an $N$, depending on $C$, such that
+\[
+q(t) < C t^{-N}.
+\]
+Recently, {\Coppersmith} and {\DavenportJ}
+\cite{Coppersmith:Davenport} have demonstrated that a similar result 
+exists for powers of polynomials.  The characteristic $p$ case has
+been studied by {\Schinzel} \cite{Schinzel:Polynomial:Powers} who has
+also been able to produce lower bound results.
+
+\section{Fast Polynomial Algorithms}
+\label{Poly:Fast:Sec}
+
+There are asymptotically faster methods for multiplying polynomials
+than those discussed in \sectref{Poly:Mult:Sec}.  Recall that using
+the classical multiplication algorithm, the product of $2$ $n$-term
+polynomials requires requires $O(n^2)$ coefficient multiplications and
+for sparse polynomials $O(n^3)$ exponent comparisons.  The fast
+methods for polynomial arithmetic can be divided into classes
+depending upon whether they reduce the number coefficient operations
+or reduce the number of exponent comparisons.  Those of the former
+class are most appropriate for dense (usually univariate) problems,
+while those that reduce exponent comparisons may be appropriate for
+sparse problems.
+
+This section discusses three basic techniques. \sectref{Poly:Sort:Sec}
+illustrates how using more efficient data structure for term lists can
+significantly reduce the number of exponent comparisons required for
+multiplication (while increasing the cost addition).  At the other end
+of the spectrum, \sectref{Poly:FFT:Sec} discusses a technique for
+multiplying polynomials using the \keyi{Fast Fourier Transform} that
+only requires $O(n \log n)$ coefficient operations.  Unfortunately,
+this technique intrinsically assumes the polynomials are dense.  In
+between these two is the recursive algorithm discussed in
+\sectref{Poly:Karatsuba:Sec} which requires $O(n^{1.56})$ coefficient
+operations, but does not require the polynomials be dense.  However,
+it places greater demands on the data structure used for the term
+lists than the first algorithm and thus may not be effective for small
+problems.
+
+Some comments are in order at this point on fast algorithms for
+manipulating polynomials.  Fast polynomial multiplication algorithms
+are most beneficial when the number of terms in the polynomial is very
+large.  Problems with large polynomials are often multivariate
+problems.  However, multivariate polynomials are usually use
+recursive, variable sparse representations.  Thus the polynomial is
+represented as multiple layers of relatively small polynomials.  As a
+consequence these algorithms may not provide as much benefit as one
+might like. Expanded, variable sparse representations might be able to
+take advantage of these optimized algorithms, but then the exponent
+comparisons can be quite expensive.  Expanded, variable dense
+representations can be used effectively, but they require that the
+number of variables that occur in the problem be known ahead of time.
+This is not practical for many problems that involve transcendental
+functions, such as integration or simplification of trigonometric
+identities.
+
+\subsection{Sorting Techniques}
+\label{Poly:Sort:Sec}
+
+The algorithms discussed in \sectref{Poly:Mult:Sec} uses the simplest
+possible data structure for the terms list of the polynomial, a linear
+list.  Unfortunately, the time to find a particular element in a
+linear list of length $O(n)$ is approximately $O(n)$.  The basic
+polynomial multiplication routine {\tt PolyTimes1} (on
+page~\pageref{PolyTimes1:Alg}) inserts $O(n^2)$ elements into the
+terms list of $H$, which on the average has $O(n)$ elements in it.
+Thus, it requires $O(n^3)$ exponent comparisons when a linear list is
+used.  By using a more efficient data structure, the exponent cost can
+be reduced to $O(n^2 \log n)$ worst case or $O(n^2)$ average case.
+
+In place of the list structure used for the \key{terms list} of the
+polynomial, a balanced structure like a heap or AVL can be used.  In
+order to maintain a level of abstraction, we describe these algorithms
+using the abstract operations given in the following table.
+
+\begin{center}
+\begin{tabular}{lp{2.25in}}
+$\mbox{\tt newTermList}()$ & Creates a new, empty term list using some
+efficient structure.\\ 
+$\mbox{\tt insert}((e : c), \mbox{\em terms})$& Inserts a new term in
+the terms list {\em terms} using the key $e$ and the value $c$. \\ 
+$\mbox{\tt delete}(e, \mbox{\em terms})$& Delete the term is key $e$ from
+{\em terms} \\ 
+{\tt foreach $(e : c) \in \mbox{\em terms}$} & Binds $e$ and $c$ to
+each key and value (exponent and coefficient) in {\em terms} and then
+evaluates its body. 
+\end{tabular}
+\end{center}
+
+Using these abstract operations a version of {\tt TermsPlus} can be
+written as follows. 
+\begindsacode
+Ter\=msPlus3 (Fterms, Gterms) := $\{$ \\
+\> $\mbox{Hterms} \leftarrow \mbox{copy}(\mbox{Fterms})$; \\
+\> for\=each $(e : c) \in \mbox{Gterms}$ $\{$ \\
+\>\> $\mbox{new-c} \leftarrow \mbox{lookup}(\mbox{Hterms}, e)$; \\
+\>\> if $\mbox{new-c} = \phi$ then $\mbox{insert}((e : c), \mbox{Hterms})$;\\
+\>\> else $\{$ \= $\mbox{delete}(e, \mbox{Hterms})$;\\
+\>\>\> $\mbox{insert}((e : c + \mbox{new-c}), \mbox{Hterms})$; \\
+\>\>\> $\}$\\
+\>\> $\}$ \\
+\> return Hterms; \\
+\> $\}$
+\enddsacode
+
+The analysis of this routine is quite simple.  Assume that number of
+non-zero terms in {\tt Fterms} and {\tt Gterms} is bounded by $n$.
+{\tt Hterms}, which is used to accumulate the sum, begins with $n$
+elements and ends with as few as $0$ terms or as many as $2n$ terms.
+The body of the {\tt foreach} loop is executed $n$ times.  Let $C(k)$
+denotes the maximum number of comparisons required to when
+inserting/deleting/looking-up an element in a set of size $k$ and
+assume that $C$ is monotonic with $k$.  The total number of
+comparisons in {\tt TermsPlus3} is bounded by
+\[
+\sum_{1 \le i \le n} C_(m+i) \le n C(m+n).
+\]
+The number of additions is always bounded by $n$.  
+
+Three different term list representations are worth mentioning, a
+linear list, a balanced tree of some sort and a hash table.  For the
+linear case, the we use the sorted structure of {\tt TermsPlus}.  In
+these three cases we get the following table.  
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|} 
+\multicolumn{1}{l}{}& \multicolumn{1}{c}{$C(k)$} & 
+  \multicolumn{1}{c}{Comparisons} & \multicolumn{1}{c}{Arith Ops} \\ \hline
+Linear list & $k$ & $O(n)$ & $O(n)$ \\ \hline
+Balanced tree & $\log k$ & $O(n \log n)$ & $O(n)$ \\ \hline
+Hash table & $O(1)$ & $O(n)$ & $O(n)$ \\ \hline
+\end{tabular}
+\end{center}
+
+Unless used more cleverly, the balanced tree data structure slows down
+the asymptotic behavior of the polynomial addition.  The linear list
+structure requires only linear time because we know the inserts are in
+order.
+
+\medskip
+Polynomial multiplication proceeds in a similar fashion.  Below we
+have coded a simple version of {\tt TermsTimes}, using the data
+abstraction operators.
+
+\begindsacode
+Ter\=msTimes3 (Fterms, Gterms) := $\{$ \\
+\> $\mbox{Hterms} \leftarrow \mbox{newTermList}()$; \\
+\> for\=each $(e_f : c_f) \in \mbox{Fterms}$ $\{$ \\
+\>\> for\=each $(e_g : c_g) \in \mbox{Gterms}$ $\{$ \\
+\>\>\> $\mbox{new-c} \leftarrow \mbox{lookup}(e_f + e_g, \mbox{Hterms})$;\\
+\>\>\> if $\mbox{new-c} = \phi$ then $\mbox{insert}((e_f + e_g : c_f \times c_g), \mbox{Hterms})$;\\
+\>\>\> else $\{$ \= $\mbox{delete}(e_f + e_g, \mbox{Hterms})$; \\
+\>\>\>\> $\mbox{c-new} \leftarrow \mbox{c-new} + c_f \times c_g$; \\
+\>\>\>\> unl\=ess $\mbox{c-new} = 0$ $\{$ \\
+\>\>\>\>\> $\mbox{insert}((e_f + e_g : \mbox{c-new}), \mbox{Hterms})$;\\
+\>\>\>\>\> $\}$\\
+\>\>\>\> $\}$\\
+\>\>\> $\}$\\
+\>\> $\}$ \\
+\> return Hterms; \\
+\> $\}$
+\enddsacode
+
+This time the number of passes through the inner loop will be
+$O(n^2)$ and $O(n^2)$ arithmetic operations will be performed, and
+$O(n^2)$ tree operations.  Taking into account the size of the trees,
+we get the following table of operation counts.
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|} 
+\multicolumn{1}{l}{}& \multicolumn{1}{c}{$C(k)$} & 
+  \multicolumn{1}{c}{Comparisons} & \multicolumn{1}{c}{Arith Ops} \\ \hline
+Linear list & $k$ & $O(n^3)$ & $O(n^2)$ \\ \hline
+Balanced tree & $\log k$ & $O(n^2 \log n)$ & $O(n^2)$ \\ \hline
+Hash table & $O(1)$ & $O(n^2)$ & $O(n^2)$ \\ \hline
+\end{tabular}
+\end{center}
+
+As can be seen by these tables, the asymptotic data structure costs of
+polynomial arithmetic can be reduced when better data structures are
+used.  By using mergeable heaps or similar data structures, the
+additional cost incurred can be eliminated so that only $O(n)$
+exponent comparisons are required.  During the seventies there was a
+significant amount of work on efficient data structures that would
+also be effective for moderate size problems \cite{Horowitz75,Klip79}
+but these techniques have not been incorporated in systems.
+
+The reason for this is that linear lists can be searched and
+manipulated very efficiently on current computer architectures.  For
+moderate size polynomials the performance benefits of the more
+efficient algorithms is not significant.  
+
+\subsection{Divide and Conquer}
+\label{Poly:Karatsuba:Sec}
+
+An idea of {\Karatsuba} and {\Ofman} \cite{Karatsuba63} leads to a
+simple algorithm that requires only requires $O(n^{1.56})$ multiplies.
+The overhead of this algorithm is small enough that if the proper
+representation is chosen it is quite effective.  The algorithm is
+based on the following identity.  Let $F$ and $G$ are polynomials
+degree $n$, where $n = 2^k$.  We can rewrite $F(x)$ and $G(x)$ as
+follows:
+\[
+\begin{eqalign}
+F(x)&= f_0(x) x^{2^{k-1}} + f_1(x),\\
+G(x)&= g_0(x) x^{2^{k-1}} + g_1(x),
+\end{eqalign}
+\]
+where $f_i$ and $g_i$ are polynomials of degree $\le 2^{k-1}$.  Then
+the product $F(x) G(x)$ can be written as:
+\[
+\begin{eqalign}
+  F(x) G(x) &= f_0 g_0 x^{2^k} + (f_1 g_0 + f_0 g_1) x^{2^{k-1}} + f_1 g_1\\
+    &= f_0 g_0 x^{2^k} 
+       + ((f_1 + f_0) (g_1 + g_0) - f_0 g_0 - f_1 g_1) x^{2^{k-1}}
+       + f_1 g_1
+\end{eqalign}
+\]
+
+Notice that the terms $f_0 g_0$ and $f_1 g_1$ appear twice in this formula.
+Thus only three polynomial multiplications are required.  If $M(n)$ denotes
+the number of coefficient multiplications required to multiply two
+polynomials of degree $n$, then using the above multiplication scheme we
+have $M(n) = 3 M(n/2)$.  Thus
+\[
+M(n) = 3 ^{\log_2 n} = n^{\log_2 3} \approx n^{1.5649625},
+\]
+for dense polynomials.  
+
+This approach can also be applied to sparse polynomials.  The
+essential idea is to find a way to split $F(X)$ and $G(X)$ into two
+pieces that have equal numbers of terms.  That is, assume that
+\[
+\begin{eqalign}
+F(x)&= f_0(x) x^{M} + f_1(x),\\
+G(x)&= g_0(x) x^{M} + g_1(x),
+\end{eqalign}
+\]
+where $f_0$ and $f_1$ have about the same number of non-zero terms and
+$g_0$ and $g_1$ have the same number of non-zero terms.  The product
+can be written as
+\[
+  F(x) G(x) = f_0 g_0 x^{2M} 
+       + ((f_1 + f_0) (g_1 + g_0) - f_0 g_0 - f_1 g_1) x^{M}
+       + f_1 g_1.
+\]
+Notice that $F(X)$ and $G(X)$ must be split at the same degree, which
+may force non-optimal splits of  $F(X)$ and $G(X)$.  It also
+introduces substantially more overhead than is required by the
+classical algorithm.  
+
+Nonetheless, this divide and conquer algorithm is easy to implement
+for univariate polynomials using the dense representation and can be a
+good choice for moderate degree problems.  
+
+\subsection{Summary}
+
+
+This is apparently better than the the $s^2$, which the
+classical algorithm requires.  There are some problems though.
+Splitting the polynomials in half, as is required, introduces a fair
+amount of overhead.  For some implementations, this algorithm is
+faster than the classical one only for polynomials of degree greater
+than about 40 \cite{Fateman74a}.
+
+
+\section{Polynomial Exponentiation}
+\label{Poly:Expt:Sec}
+
+Polynomial exponentiation is a significantly more subtle problem than
+exponentiating floating point numbers.  The simplest technique for
+computing $P(X)^s$ is to multiply $P(X)$ by itself repeatedly, \ie,
+\begindsacode
+Pol\=yExptRm ($p$, $s$) := $\{$\\
+\> $q \leftarrow 1$ ; \\
+\> for \=$1 \le i \le s$ $\{$\\
+\> \> $q \leftarrow p \times q$; \\
+\>\> $\}$ \\
+\> return ($q$); \\
+\>$\}$
+\enddsacode
+
+\noindent
+This is called the {\em repeated multiplication algorithm\/}.  For numerical
+computations we know that we can decrease the number of  multiplications by
+using the {\em repeated squaring} algorithm given below.
+\begindsacode
+Pol\=yExptSq ($p$, $s$) := $\{$\\
+\> $q \leftarrow 1$; \\
+\> $m \leftarrow p$; \\
+\> whi\=le $s > 0$ $\{$\\
+\> \> if oddp($s$) then $q \leftarrow q \times m$; \\
+\> \> $m \leftarrow m \times m$; \\
+\> \> $s \leftarrow \lfloor s/2 \rfloor$; \\
+\>\> $\}$ \\
+\> return ($q$); \\
+\> $\}$
+\enddsacode
+
+\noindent
+Unlike floating point numbers, $P(X)^2$ is generally larger than $P(X)$.
+This means that computing $(P(X)^{s/2})^2$ is significantly more difficult
+than computing $P(X)^2$ and thus it is not clear how its difficulty compares
+with multiplying $P(X)^{s-1}$ by $P(X)$.  In fact repeated squaring is
+more expensive for polynomials than repeated multiplication---just the
+opposite of the situation with floating point numbers or elements of $\F_p$.
+
+In the next few paragraphs we give a result of {\Gentleman}
+\cite{Gentleman:Exp} that quantifies this.  The size of $P(X)^s$ is
+largest relative to the size of $P(X)$ when $P(X)$ is completely
+sparse.  Thus, for a worst case analysis we will let $P$ be a
+polynomial with $n+1$ independent terms:
+\[
+P = 1 + t_1 + t_2 + \cdots + t_n
+\]
+and
+\[
+P_i = (1 + t_1 + t_2 + \cdots + t_n)^i
+\]
+In the following we ignore the cost of exponent comparisons and we assume a
+classical $O(n^{2})$ multiplication algorithm.  Thus the cost of
+multiplying two polynomials is the product of the number of terms in each.
+If we let $L(P_i)$ denote the number of terms in $P_i$, then
+\[
+L(P_i) = {n + i \choose n}.
+\]
+
+\newcommand{\Csq}{C_{\rm Sq}}
+\newcommand{\Cmul}{C_{\rm Mul}}
+Now consider the problem of computing $P_{r+s}$ given $P_r$ and $P_s$.
+Multiplying $P_r$ by $P_s$ corresponds to using the repeated squaring
+algorithm, while repeated multiplying by $P_1$ corresponds to the repeated
+multiplication algorithm.  The cost of multiplying $P_r P_s$ is
+\[
+\Csq(r, s) = L(P_r) L(P_s) = {n + r \choose n} { n + s \choose n}.
+\]
+Repeated multiplication costs
+\[
+\begin{eqalign}
+  \Cmul(r, s) = 
+  \sum_{j=r}^{r+s-1} L(P_1) L(P_j) &=
+    (n+1) \sum_{j=r}^{r+s-1} {n + j \choose n}\\
+     &= (r + s)\, {n + r + s \choose n} - r\, {n + r \choose n}
+\end{eqalign}
+\]
+where we have used the identity
+\[
+\sum_{i=0}^{k}{n + j \choose n} = {n+k+1 \choose n}.
+\]
+{\Gentleman} proves the following proposition
+
+\begin{proposition}[Gentleman]
+\label{Gentleman:Exp:Prop}
+With $\Csq$ and $\Cmul$ as above there are three cases,
+\begin{itemize}
+\item [(a)] If $n > 3$, then for sufficiently large $r$, $\Csq$
+exceeds $\Cmul$ for all $2 \le s \le r$.
+\item [(b)] If $n = 3$, then for sufficiently large $r$, $\Csq$ is
+larger than $\Cmul$ for all $3 \le s \le r$, unless $s=2$ when $\Cmul
+> \Csq$.
+\item[(c)] If $n=2$ then $\Cmul > \Csq$ for $2 \le s \le r$.
+\end{itemize}
+\end{proposition}\Marginpar{Explain what all this means.}
+
+Rather than prove \propref{Gentleman:Exp:Prop}, which is a bit
+involved we instead examine the cost of producing $P_{2r}$.  For the
+repeated squaring case, we assume that we already know $P_{r}$ and
+merely have to multiply them.  Thus the cost of using the repeated
+squaring algorithm is 
+\[
+\begin{eqalign}
+ \Csq(r,r) &= {n + r \choose r}^{2} \\
+     & = \frac{\left(n^{r} + \frac{1}{2}r (r+1) n^{r-1}
+                 + O(n^{r-2})\right)^{2}}{(r!)^{2}} \\
+     & = \frac{n^{2r}}{(r!)^{2}}\left(1 + \frac{r(r+1)}{n}\right) 
+                + O(n^{2r-2}).
+\end{eqalign}
+\]
+For repeated multiplication, we multiply by $P_{1}$ $2r$ times.  Thus the
+cost will be
+\[
+\begin{eqalign}
+  \Cmul(2r, 1) & = 2r{n+2r \choose 2r} - n-1 \\
+     & 2r \frac{n^{2r} + \frac{1}{2}(2r)(2r+1) n^{2r-1} 
+        + O(n^{2r-2})}{(2r)!} \\
+     & = \frac{2r}{(2r)!}n^{2r}\left(1 + \frac{r(2r+1)}{n}\right) 
+        + O(n^{2r-2}).
+\end{eqalign}
+\]
+The ratio of these two costs is 
+\[
+\frac{\Csq(r,r)}{\Cmul(2r,1)} =
+\frac{1}{2r}{2r \choose r} \left(1 - \frac{r^{2}}{n}\right) 
+  + O(n^{-2}).
+\]
+For sufficiently sparse polynomials (large values of $n$), the
+right-hand side of this expression is greater than $1$ for all $r \ge
+2$.  Thus final multiplication in computing $P^{2r}$ by repeated
+squaring can dominate the cost of computing 
+\[
+\overbrace{P \times P \times \cdots \times P}^{2r},
+\]
+which many people find quite counterintuitive.
+
+\medskip
+An algorithm that has been used successfully in \Macsyma, and seems to have
+somewhat better behavior than repeated multiplication is based on the
+binomial theorem.  The idea is based on the binomial formula:
+\[
+(a + b)^n = a^n + n a^{n-1} b + {n (n - 1) \over 2} a^{n-2} b^2 +
+\cdots + b^n.
+\]
+The leading term of the polynomial is used for $a$ and the rest of the
+polynomial takes the place of $b$ in the formula.  Notice that each of the
+powers of $b$ can be computed by a single multiplication.  The following
+program implements the binomial theorem version of the exponentiation
+algorithm.  The variable $c$ is successively bound to binomial
+coefficients. 
+
+\begindsacode
+Pol\=yExpt ($p$, $n$) := $\{$ \\
+\> if $n=0$ then return($1$); \\
+\> elif $n=1$ then return($p$); \\
+\> else $\{$ \= $b \leftarrow \mbox{\rm rest}(p)$; \\
+\> \> $m \leftarrow \lt p$; \\
+\> \> $l \leftarrow (b^{n-1}, \ldots, b)$; \\
+\> \> $c \leftarrow n$; \\
+\> \> $r \leftarrow b \times \mbox{\rm first}(l)$ ; \\
+\> \> $M \leftarrow m$; \\
+\> \> unle\=ss null($l$) $\{$ \\
+\> \> \> $r \leftarrow r + c \times M \times \mbox{\rm first}(l)$; \\
+\> \> \> $l \leftarrow \mbox{\rm rest}(l)$ ; \\
+\> \> \> $k \leftarrow k+1$; \\
+\> \> \> $c \leftarrow (c \times (n - k))/(k+1)$; \\
+\> \> \> $M \leftarrow m \times M$; \\
+\> \> \> $\}$ \\
+\> \> $\}$ \\
+\> \> return($r$); \\
+\> $\}$
+\enddsacode
+
+A version of this algorithm that uses the multinomial expansion
+formula has been described by {\Alagar} and {\Probst}
+\cite{Alagar:Probst87}.  Their algorithm behaves better with purely
+dense polynomials, but not so well on sparse polynomials.  The one
+given above seems to be a reasonably good, general purpose algorithm
+for general multivariate polynomials.  For univariate dense
+polynomials, the FFT techniques described in \sectref{Poly:FFT:Sec}
+are both asymptotically better, and for sufficiently large polynomials
+superior in practice.
+
+\section{Polynomial Substitution}
+\label{Poly:Subs:Sec}
+
+By polynomial substitution we mean (in full generality) the problem of
+computing $F(G)$ when given $F(X) \in R[X]$ and $G$ an element of an
+$R$-module.
+
+\begindsacode
+Ter\=msHorner(Fterms, $G$) := $\{$ \\
+\> 
+
+\enddsacode
+
+
+\section*{Notes}
+
+\footnotesize
+
+\notesectref{Poly:Generalities:Sec} The ``vectorized subscript''
+notation is fairly commonly used now, although some authors use
+capital letters in the subscript to indicate the vector, \ie, instead
+$a_{\vec i}$ they write $a_I$.  I believe this notation was first
+introduced by Laurent {\SchwartzL}, in his work on distributions.
+
+\notesectref{Poly:Expt:Sec} When raising a polynomial to a large
+power {\em modulo another polynomial} a variant of the ``repeated
+squaring technique'' can be used effectively.  This technique is
+described in \sectref{FFac:Distinct:Sec} on page
+\pageref{FFac:Distinct:Sec}.
+
+\normalsize
